@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary brand color -->
+    <color name="colorPrimary">#009688</color> <!-- Teal -->
+    <color name="colorPrimaryVariant">#00796B</color> <!-- Darker teal -->
+    <color name="colorSecondary">#4CAF50</color> <!-- Green accent -->
+
+    <!-- Backgrounds -->
+    <color name="colorBackground">#FAFAFA</color>
+    <color name="colorSurface">#FFFFFF</color>
+
+    <!-- Text -->
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="colorOnSecondary">#FFFFFF</color>
+    <color name="colorOnBackground">#212121</color>
+    <color name="colorOnSurface">#212121</color>
+
+
+        <color name="teal_700">#00796B</color> <!-- dark teal -->
+        <color name="teal_500">#009688</color> <!-- medium teal -->
+        <color name="teal_200">#80CBC4</color> <!-- light teal -->
+
+</resources>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainFragment">
+
+    <!-- Header text -->
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🌱 Current Plant Status"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:layout_margin="16dp" />
+
+    <!-- RecyclerView stays unchanged -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerFarm"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="8dp"
+        android:layout_marginTop="56dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/history"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="History"
+        android:textColor="@android:color/white"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        app:cornerRadius="20dp"
+        app:backgroundTint="@color/teal_700"
+        app:icon="@drawable/outline_alt_route_24"
+        app:iconTint="@android:color/white"
+        app:iconPadding="8dp" />
+
+    <!-- Floating Action Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAdd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="16dp"
+        app:backgroundTint="@color/teal_700"
+        app:tint="@android:color/white"
+        app:srcCompat="@drawable/outline_add_box_24" />
+
+
+
+</FrameLayout>
