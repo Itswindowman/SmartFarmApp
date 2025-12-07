@@ -16,19 +16,14 @@ import java.util.List;
 // but rather a helper class dedicated to a single purpose: communicating with your Supabase backend.
 // This is a great practice called "Separation of Concerns." It keeps your complex networking
 // code separate from your UI code (like MainFragment), making your app much easier to manage.
+
+
+
 public class SupabaseService {
 
-    // --- CONSTANTS ---
-    // Constants are variables that never change. Using them makes your code cleaner and safer.
-    // `private static final` means only this class can see them (`private`), they belong to the
-    // class itself rather than an instance (`static`), and their value cannot be changed (`final`).
-
-    // The base URL for your Supabase project's REST API, pointing to the 'Farm' table.
-    // The `?select=*` part is important; it tells the database to return all columns for each row.
     private static final String SUPABASE_URL = "https://lqdbdpnqapcrgwdapbba.supabase.co/rest/v1/Farm?select=*";
 
-    // This is your public API key (often called the "anon" key). It identifies your project
-    // but does NOT grant admin privileges. It is safe to include this in your client-side app.
+    // This is your public API key.
     private static final String SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxZGJkcG5xYXBjcmd3ZGFwYmJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4OTE0NTEsImV4cCI6MjA3OTQ2NzQ1MX0.d0UCxvHeMxLurzJULgYrYyLdWqrCo4zqaOWW0Ptt1aM";
 
     // --- MEMBER VARIABLES ---

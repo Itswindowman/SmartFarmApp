@@ -15,6 +15,11 @@
     <color name="colorOnBackground">#212121</color>
     <color name="colorOnSurface">#212121</color>
 
+    <color name="deep_green">#2E7D32</color>
+    <color name="accent_green">#A5D6A7</color>
+    <color name="bg_light_green">#E8F5E9</color>
+    <color name="text_secondary">#616161</color>
+
 
         <color name="teal_700">#00796B</color> <!-- dark teal -->
         <color name="teal_500">#009688</color> <!-- medium teal -->

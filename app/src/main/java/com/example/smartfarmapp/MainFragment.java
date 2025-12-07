@@ -1,5 +1,6 @@
 package com.example.smartfarmapp;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,6 +38,10 @@ public class MainFragment extends Fragment {
     // This is the list that will hold all of your `Farm` objects after they are
     // fetched from the Supabase database.
     private List<Farm> farmList;
+
+    // FAB Button
+    private FloatingActionButton fabAdd;
+
 
     // --- CONSTRUCTOR ---
     // A public, no-argument constructor is required for all fragments.
@@ -79,6 +84,7 @@ public class MainFragment extends Fragment {
         // Now that the view is inflated, we can find specific UI elements within it using their ID.
 
 
+
         // Find the FloatingActionButton (the round button) from your XML layout
         FloatingActionButton fabAdd = view.findViewById(R.id.fabAdd);
 
@@ -87,9 +93,8 @@ public class MainFragment extends Fragment {
         fabAdd.setOnClickListener(v -> {
             // A Toast is a small popup message that disappears after a few seconds. It's great for testing.
             Toast.makeText(getContext(), "FAB clicked!", Toast.LENGTH_SHORT).show();
+            showAddFarmDialog();
 
-            // TODO: This is a placeholder. Here you would add your code to
-            // open a new dialog or screen to let the user add a new farm.
         });
 
         // Find the RecyclerView from your XML layout.
@@ -170,6 +175,33 @@ public class MainFragment extends Fragment {
                     );
                 }
             }
+
+
         });
+
+
+    }
+
+    private void showAddFarmDialog(){
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View dialogView = inflater.inflate(R.layout.dialog_add_farm, null);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setView(dialogView)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    Toast.makeText(getContext(), "Added Farm", Toast.LENGTH_SHORT).show();
+
+
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> {
+                    Toast.makeText(getContext(), "You Cancled", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+
+
     }
 }
