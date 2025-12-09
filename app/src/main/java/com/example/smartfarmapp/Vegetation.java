@@ -1,32 +1,27 @@
 package com.example.smartfarmapp;
 
+import com.google.gson.annotations.SerializedName;
+
+
 public class Vegetation {
     private int id;
     private String name;
-    private int dayTempMin;
-    private int dayTempMax;
-    private int nightTempMin;
-    private int nightTempMax;
-    private int dayGroundHumidMin;
-    private int dayGroundHumidMax;
-    private int nightGroundHumidMin;
 
-    public Vegetation(int id, String name, int dayTempMin, int dayTempMax, int nightTempMin, int nightTempMax, int dayGroundHumidMin, int dayGroundHumidMax, int nightGroundHumidMin, int nightGroundHumidMax, int dayAirHumidMin, int dayAirHumidMax, int nightAirHumidMin, int nightAirHumidMax) {
-        this.id = id;
-        this.name = name;
-        this.dayTempMin = dayTempMin;
-        this.dayTempMax = dayTempMax;
-        this.nightTempMin = nightTempMin;
-        this.nightTempMax = nightTempMax;
-        this.dayGroundHumidMin = dayGroundHumidMin;
-        this.dayGroundHumidMax = dayGroundHumidMax;
-        this.nightGroundHumidMin = nightGroundHumidMin;
-        this.nightGroundHumidMax = nightGroundHumidMax;
-        this.dayAirHumidMin = dayAirHumidMin;
-        this.dayAirHumidMax = dayAirHumidMax;
-        this.nightAirHumidMin = nightAirHumidMin;
-        this.nightAirHumidMax = nightAirHumidMax;
-    }
+
+    private Float dayTempMin;
+    private Float dayTempMax;
+    private Float nightTempMin;
+    private Float nightTempMax;
+
+    private Float dayGroundHumidMin;
+    private Float dayGroundHumidMax;
+    private Float nightGroundHumidMin;
+    private Float nightGroundHumidMax;
+
+    private Float dayAirHumidMin;
+    private Float dayAirHumidMax;
+    private Float nightAirHumidMin;
+    private Float nightAirHumidMax;
 
     public void setId(int id) {
         this.id = id;
@@ -36,56 +31,53 @@ public class Vegetation {
         this.name = name;
     }
 
-    public void setDayTempMin(int dayTempMin) {
+    public void setDayTempMin(Float dayTempMin) {
         this.dayTempMin = dayTempMin;
     }
 
-    public void setDayTempMax(int dayTempMax) {
+    public void setDayTempMax(Float dayTempMax) {
         this.dayTempMax = dayTempMax;
     }
 
-    public void setNightTempMin(int nightTempMin) {
+    public void setNightTempMin(Float nightTempMin) {
         this.nightTempMin = nightTempMin;
     }
 
-    public void setNightTempMax(int nightTempMax) {
+    public void setNightTempMax(Float nightTempMax) {
         this.nightTempMax = nightTempMax;
     }
 
-    public void setDayGroundHumidMin(int dayGroundHumidMin) {
+    public void setDayGroundHumidMin(Float dayGroundHumidMin) {
         this.dayGroundHumidMin = dayGroundHumidMin;
     }
 
-    public void setDayGroundHumidMax(int dayGroundHumidMax) {
+    public void setDayGroundHumidMax(Float dayGroundHumidMax) {
         this.dayGroundHumidMax = dayGroundHumidMax;
     }
 
-    public void setNightGroundHumidMin(int nightGroundHumidMin) {
+    public void setNightGroundHumidMin(Float nightGroundHumidMin) {
         this.nightGroundHumidMin = nightGroundHumidMin;
     }
 
-    public void setNightGroundHumidMax(int nightGroundHumidMax) {
+    public void setNightGroundHumidMax(Float nightGroundHumidMax) {
         this.nightGroundHumidMax = nightGroundHumidMax;
     }
 
-    public void setDayAirHumidMin(int dayAirHumidMin) {
+    public void setDayAirHumidMin(Float dayAirHumidMin) {
         this.dayAirHumidMin = dayAirHumidMin;
     }
 
-    public void setDayAirHumidMax(int dayAirHumidMax) {
+    public void setDayAirHumidMax(Float dayAirHumidMax) {
         this.dayAirHumidMax = dayAirHumidMax;
     }
 
-    public void setNightAirHumidMin(int nightAirHumidMin) {
+    public void setNightAirHumidMin(Float nightAirHumidMin) {
         this.nightAirHumidMin = nightAirHumidMin;
     }
 
-    public void setNightAirHumidMax(int nightAirHumidMax) {
+    public void setNightAirHumidMax(Float nightAirHumidMax) {
         this.nightAirHumidMax = nightAirHumidMax;
     }
-
-    private int nightGroundHumidMax;
-    private int dayAirHumidMin;
 
     public int getId() {
         return id;
@@ -95,59 +87,74 @@ public class Vegetation {
         return name;
     }
 
-    public int getDayTempMin() {
+    public Float getDayTempMin() {
         return dayTempMin;
     }
 
-    public int getDayTempMax() {
+    public Float getDayTempMax() {
         return dayTempMax;
     }
 
-    public int getNightTempMin() {
+    public Float getNightTempMin() {
         return nightTempMin;
     }
 
-    public int getNightTempMax() {
+    public Float getNightTempMax() {
         return nightTempMax;
     }
 
-    public int getDayGroundHumidMin() {
+    public Float getDayGroundHumidMin() {
         return dayGroundHumidMin;
     }
 
-    public int getDayGroundHumidMax() {
+    public Float getDayGroundHumidMax() {
         return dayGroundHumidMax;
     }
 
-    public int getNightGroundHumidMin() {
+    public Float getNightGroundHumidMin() {
         return nightGroundHumidMin;
     }
 
-    public int getNightGroundHumidMax() {
+    public Float getNightGroundHumidMax() {
         return nightGroundHumidMax;
     }
 
-    public int getDayAirHumidMin() {
+    public Float getDayAirHumidMin() {
         return dayAirHumidMin;
     }
 
-    public int getDayAirHumidMax() {
+    public Float getDayAirHumidMax() {
         return dayAirHumidMax;
     }
 
-    public int getNightAirHumidMin() {
+    public Float getNightAirHumidMin() {
         return nightAirHumidMin;
     }
 
-    public int getNightAirHumidMax() {
+    public Float getNightAirHumidMax() {
         return nightAirHumidMax;
     }
 
-    private int dayAirHumidMax;
-    private int nightAirHumidMin;
-    private int nightAirHumidMax;
+    public Vegetation(int id, String name, Float dayTempMin, Float dayTempMax, Float nightTempMin, Float nightTempMax, Float dayGroundHumidMin, Float dayGroundHumidMax, Float nightGroundHumidMin, Float nightGroundHumidMax, Float dayAirHumidMin, Float dayAirHumidMax, Float nightAirHumidMin, Float nightAirHumidMax) {
+        this.id = id;
+        this.name = name;
+        this.dayTempMin = dayTempMin;
+        this.dayTempMax = dayTempMax;
+        this.nightTempMin = nightTempMin;
+        this.nightTempMax = nightTempMax;
+        this.dayGroundHumidMin = dayGroundHumidMin;
+        this.dayGroundHumidMax = dayGroundHumidMax;
+        this.nightGroundHumidMin = nightGroundHumidMin;
+        this.nightGroundHumidMax = nightGroundHumidMax;
+        this.dayAirHumidMin = dayAirHumidMin;
+        this.dayAirHumidMax = dayAirHumidMax;
+        this.nightAirHumidMin = nightAirHumidMin;
+        this.nightAirHumidMax = nightAirHumidMax;
+    }
 
-    // Constructor, getters, and setters...
+
+
+
 
 
 }
