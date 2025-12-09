@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -186,10 +187,51 @@ public class MainFragment extends Fragment {
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View dialogView = inflater.inflate(R.layout.dialog_add_farm, null);
 
+        // setting up EditTexts and everything
+
+        EditText etDayTempMin = dialogView.findViewById(R.id.etDayTempMin);
+        EditText etDayTempMax = dialogView.findViewById(R.id.etDayTempMax);
+        EditText etNightTempMin = dialogView.findViewById(R.id.etNightTempMin);
+        EditText etNightTempMax = dialogView.findViewById(R.id.etNightTempMax);
+        EditText etDayGroundMin = dialogView.findViewById(R.id.etDayGroundMin);
+        EditText etDayGroundMax = dialogView.findViewById(R.id.etDayGroundMax);
+        EditText etNightGroundMin = dialogView.findViewById(R.id.etNightGroundMin);
+        EditText etNightGroundMax = dialogView.findViewById(R.id.etNightGroundMax);
+        EditText etDayAirMin = dialogView.findViewById(R.id.etDayAirMin);
+        EditText etDayAirMax = dialogView.findViewById(R.id.etDayAirMax);
+        EditText etNightAirMin = dialogView.findViewById(R.id.etNightAirMin);
+        EditText etNightAirMax = dialogView.findViewById(R.id.etNightAirMax);
+        EditText etFarmName = dialogView.findViewById(R.id.etFarmName);
+
+
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setView(dialogView)
                 .setPositiveButton("Save", (dialog, which) -> {
                     Toast.makeText(getContext(), "Added Farm", Toast.LENGTH_SHORT).show();
+
+                    // Get Text from EditTexts
+                    String farmName = etFarmName.getText().toString();
+
+                    //temp
+                    float dayTempMin = Float.parseFloat(etDayTempMin.getText().toString());
+                    float dayTempMax = Float.parseFloat(etDayTempMax.getText().toString());
+                    float nightTempMin = Float.parseFloat(etNightTempMin.getText().toString());
+                    float nightTempMax = Float.parseFloat(etNightTempMax.getText().toString());
+
+                    // Ground
+                    float dayGroundMin = Float.parseFloat(etDayGroundMin.getText().toString());
+                    float dayGroundMax = Float.parseFloat(etDayGroundMax.getText().toString());
+                    float nightGroundMin = Float.parseFloat(etNightGroundMin.getText().toString());
+                    float nightGroundMax = Float.parseFloat(etNightGroundMax.getText().toString());
+
+                    //Air
+                    float dayAirMin = Float.parseFloat(etDayAirMin.getText().toString());
+                    float dayAirMax = Float.parseFloat(etDayAirMax.getText().toString());
+                    float nightAirMin = Float.parseFloat(etNightAirMin.getText().toString());
+                    float nightAirMax = Float.parseFloat(etNightAirMax.getText().toString());
+
+                    Vegetation veg = new Vegetation(1,farmName, dayTempMin, dayTempMax, nightTempMin, nightTempMax, dayGroundMin, dayGroundMax, nightGroundMin, nightGroundMax, dayAirMin, dayAirMax, nightAirMin, nightAirMax);
+
 
 
                 })
@@ -204,6 +246,8 @@ public class MainFragment extends Fragment {
 
 
     }
+
+
 
 
 }
