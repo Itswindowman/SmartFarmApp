@@ -28,9 +28,13 @@ public class VegetationRepo {
 
     private final OkHttpClient client = new OkHttpClient();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final Gson gson = new GsonBuilder()
-            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-            .create();
+
+    // --- IMPORTANT FIX ---
+    // Your database columns are quoted as camelCase (e.g., "dayTempMin").
+    // Therefore, the Supabase API returns JSON with camelCase keys.
+    // By removing the FieldNamingPolicy, we tell Gson to use its default behavior,
+    // which maps Java camelCase fields directly to JSON camelCase keys. This fixes the mapping issue.
+    private final Gson gson = new GsonBuilder().create();
 
     // --- CALLBACK INTERFACES ---
     public interface FetchVegetationsCallback {
@@ -43,17 +47,12 @@ public class VegetationRepo {
         void onFailure(Exception e);
     }
 
-    // New callback for the update operation
     public interface UpdateVegetationCallback {
         void onSuccess();
         void onFailure(Exception e);
     }
 
-    /**
-     * Adds a new vegetation record.
-     */
     public void addVegetation(Vegetation vegetation, AddVegetationCallback callback) {
-        // The ID is handled by Supabase, so we don't send it.
         String jsonBody = gson.toJson(vegetation);
         RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json; charset=utf-8"));
 
@@ -84,26 +83,18 @@ public class VegetationRepo {
         });
     }
 
-    /**
-     * Updates an existing vegetation record in the database.
-     * @param vegetation The vegetation object with updated data. It MUST have a valid ID.
-     * @param callback   The callback for success or failure.
-     */
     public void updateVegetation(Vegetation vegetation, UpdateVegetationCallback callback) {
-        // Build the URL to target the specific row, e.g., .../Vegetationtbl?id=eq.123
         String url = VEGETATION_URL + "?id=eq." + vegetation.getId();
-
         String jsonBody = gson.toJson(vegetation);
         RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json; charset=utf-8"));
 
-        // An update operation is an HTTP PATCH request.
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("apikey", SUPABASE_API_KEY)
                 .addHeader("Authorization", "Bearer " + SUPABASE_API_KEY)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Prefer", "return=minimal")
-                .patch(body) // Use .patch() for updates
+                .patch(body)
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
@@ -114,7 +105,6 @@ public class VegetationRepo {
 
             @Override
             public void onResponse(Call call, Response response) {
-                // For PATCH, a 204 No Content response means success.
                 if (response.isSuccessful()) {
                     mainHandler.post(callback::onSuccess);
                 } else {
@@ -125,9 +115,6 @@ public class VegetationRepo {
         });
     }
 
-    /**
-     * Fetches all vegetation records.
-     */
     public void fetchVegetations(FetchVegetationsCallback callback) {
         Request request = new Request.Builder()
                 .url(VEGETATION_URL + "?select=*")
@@ -144,13 +131,14 @@ public class VegetationRepo {
 
             @Override
             public void onResponse(Call call, Response response) {
-                try {
-                    if (!response.isSuccessful()) {
-                        throw new IOException("Unexpected code " + response);
-                    }
-                    ResponseBody responseBody = response.body();
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onFailure(new IOException("Unexpected code " + response)));
+                    return;
+                }
+                try (ResponseBody responseBody = response.body()){
                     if (responseBody == null) {
-                        throw new IOException("Response body is null");
+                        mainHandler.post(() -> callback.onFailure(new IOException("Response body is null")));
+                        return;
                     }
                     String json = responseBody.string();
                     Type listType = new TypeToken<List<Vegetation>>() {}.getType();

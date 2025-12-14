@@ -1,107 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 
-    ROOT ELEMENT: CardView
-    A CardView is a container from Google's Material Design library. It's perfect for dialogs because
-    it creates the appearance of a physical card with rounded corners and a shadow effect (elevation).
--->
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="24dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="8dp"
-    app:cardUseCompatPadding="true">
+    android:layout_margin="16dp"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="10dp"
+    app:cardBackgroundColor="#FFFFFF">
 
-    <!-- 
-        This LinearLayout is the main container inside the card, arranged vertically.
-    -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- 
-            HEADER SECTION
-            This section creates a colored title bar for the dialog.
-            BEST PRACTICE: Using theme attributes like `?attr/colorPrimary` instead of hardcoded colors
-            allows your dialog to automatically support both light and dark themes.
-        -->
-        <LinearLayout
+        <!-- Header -->
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:background="?attr/colorPrimary"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp">
+            android:background="#2E7D32">
 
             <TextView
                 android:id="@+id/dialogTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add New Farm"
-                android:textColor="?attr/colorOnPrimary"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="16dp"
+                android:text="Add or Edit Vegetation"
+                android:textColor="#FFFFFF"
                 android:textSize="18sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                android:fontFamily="sans-serif-medium" />
+        </FrameLayout>
 
-        <!-- 
-            ScrollView
-            This is a very important container for long forms. If the content is too tall to fit
-            on the screen, the ScrollView will allow the user to scroll vertically to see everything.
-        -->
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <!-- This LinearLayout holds all the form content that will be scrollable. -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:background="#F6F8F6">
 
-                <!-- 
-                    TextInputLayout & TextInputEditText
-                    This is the modern and correct way to create input fields. The TextInputLayout wraps the
-                    EditText and provides features like a floating hint label and the outlined box style.
-                -->
+                <!-- Mode Selection -->
+                <RadioGroup
+                    android:id="@+id/rgModeSelector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <RadioButton
+                        android:id="@+id/rbAddNew"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Add New"
+                        android:checked="true"
+                        android:buttonTint="#2E7D32"
+                        android:textColor="#1C1B1F" />
+
+                    <RadioButton
+                        android:id="@+id/rbSelectExisting"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="Select Existing"
+                        android:buttonTint="#2E7D32"
+                        android:textColor="#1C1B1F" />
+                </RadioGroup>
+
+                <!-- Vegetation Name -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilFarmName"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    app:boxStrokeColor="#2E7D32"
+                    app:boxCornerRadiusTopStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusBottomEnd="12dp">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etFarmName"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Farm name"
-                        android:inputType="textCapWords" />
+                        android:hint="Vegetation Name"
+                        android:inputType="textCapWords"
+                        android:textColor="#1C1B1F"
+                        android:textColorHint="#6B6B6B" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                <!-- Existing Vegetation Spinner -->
+                <Spinner
+                    android:id="@+id/spinnerVegetation"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"/>
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone" />
 
-                <!-- This TextView acts as a subtitle or section header for the next group of fields. -->
+                <!-- Temperature -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Temperature Ranges"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:textStyle="bold" />
+                    android:layout_marginTop="20dp"
+                    android:text="Temperature Ranges (°C)"
+                    android:textColor="#4E5D52"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium" />
 
-                <!-- 
-                    SIDE-BY-SIDE INPUTS using LinearLayout with weightSum
-                    To place two items side-by-side, we use a horizontal LinearLayout with a `weightSum`.
-                    Think of `weightSum="2"` as dividing the available width into two equal "shares".
-                    Each child with `layout_weight="1"` will take up one of those shares (50% of the space).
-                    The width of the children MUST be set to `0dp` for this to work correctly.
-                -->
+                <!-- Day Temperature -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -113,34 +121,48 @@
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etDayTempMin"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Day min °C"
-                            android:inputType="numberDecimal" />
+                            android:hint="Day min"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginStart="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etDayTempMax"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Day max °C"
-                            android:inputType="numberDecimal" />
+                            android:hint="Day max"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
-                <!-- This is the same side-by-side pattern for the night temperatures. -->
+                <!-- Night Temperature -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -152,43 +174,58 @@
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etNightTempMin"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Night min °C"
-                            android:inputType="numberDecimal" />
+                            android:hint="Night min"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginStart="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etNightTempMax"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Night max °C"
-                            android:inputType="numberDecimal" />
+                            android:hint="Night max"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
-                <!-- Another section header -->
+                <!-- Ground Humidity -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Ground Humidity Ranges"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:textStyle="bold" />
+                    android:layout_marginTop="20dp"
+                    android:text="Ground Humidity Ranges (%)"
+                    android:textColor="#4E5D52"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium" />
 
-                <!-- The same pattern is repeated for Ground and Air humidity ranges... -->
+                <!-- Day Ground -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -200,33 +237,48 @@
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etDayGroundMin"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Day min %"
-                            android:inputType="numberDecimal" />
+                            android:hint="Day min"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginStart="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etDayGroundMax"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Day max %"
-                            android:inputType="numberDecimal" />
+                            android:hint="Day max"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
+                <!-- Night Ground -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -238,42 +290,58 @@
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etNightGroundMin"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Night min %"
-                            android:inputType="numberDecimal" />
+                            android:hint="Night min"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginStart="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etNightGroundMax"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Night max %"
-                            android:inputType="numberDecimal" />
+                            android:hint="Night max"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
-                <!-- Another section header -->
+                <!-- Air Humidity -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Air Humidity Ranges"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:textStyle="bold" />
+                    android:layout_marginTop="20dp"
+                    android:text="Air Humidity Ranges (%)"
+                    android:textColor="#4E5D52"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium" />
 
+                <!-- Day Air -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -285,33 +353,48 @@
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etDayAirMin"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Day min %"
-                            android:inputType="numberDecimal" />
+                            android:hint="Day min"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginStart="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etDayAirMax"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Day max %"
-                            android:inputType="numberDecimal" />
+                            android:hint="Day max"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
 
+                <!-- Night Air -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -323,39 +406,46 @@
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etNightAirMin"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Night min %"
-                            android:inputType="numberDecimal" />
+                            android:hint="Night min"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:layout_marginStart="4dp"
-                        android:layout_weight="1">
+                        app:boxStrokeColor="#2E7D32"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etNightAirMax"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Night max %"
-                            android:inputType="numberDecimal" />
+                            android:hint="Night max"
+                            android:inputType="numberDecimal"
+                            android:textColor="#1C1B1F"
+                            android:textColorHint="#6B6B6B" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
-
-                <!-- 
-                    ACTIONS SECTION
-                    A standard dialog needs action buttons. `gravity="end"` pushes them to the right.
-                    A `TextButton` is used for less important actions like "Cancel", while a standard,
-                    contained button is used for the primary action like "Save".
-                -->
 
             </LinearLayout>
         </ScrollView>
