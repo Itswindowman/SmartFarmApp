@@ -2,10 +2,16 @@ package com.example.smartfarmapp;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -14,240 +20,273 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-// --- EXPLANATION ---
-// A Fragment represents a reusable portion of your app's UI.
-// Think of it as a "mini-activity" that can be combined with other fragments
-// inside a main Activity. This MainFragment appears to be the main screen of your app.
 public class MainFragment extends Fragment {
 
-    // --- MEMBER VARIABLES ---
-    // These are variables that the fragment will need to access in different methods.
-    // They are defined here to be accessible throughout the entire class.
-
-    // The RecyclerView is the powerful UI widget that displays a scrollable list of items.
     private RecyclerView recyclerView;
-
-    // The FarmAdapter is a custom class you must create. Its job is to take your
-    // list of farm data and "adapt" it so the RecyclerView knows how to display each
-    // individual item in the list.
     private FarmAdapter adapter;
-
-    // This is the list that will hold all of your `Farm` objects after they are
-    // fetched from the Supabase database.
     private List<Farm> farmList;
-
-    // FAB Button
     private FloatingActionButton fabAdd;
+    private VegetationRepo vegetationRepo;
 
+    // New member variables for the dialog logic
+    private List<Vegetation> allVegetations = new ArrayList<>();
+    private Vegetation selectedVegetation = null;
+    private boolean isEditMode = false;
 
-    // --- CONSTRUCTOR ---
-    // A public, no-argument constructor is required for all fragments.
-    // Android uses this to automatically re-create your fragment when needed
-    // (for example, after the screen rotates).
-    public MainFragment() {
-        // Required empty public constructor
-    }
+    public MainFragment() {}
 
-    // --- FRAGMENT LIFECYCLE: onCreate ---
-    // This method is called when the fragment is first being created.
-    // It's used for initialization that doesn't involve the UI, because the
-    // UI has not been created yet at this stage.
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState); // Always call the parent class's method first.
-
-        // Initialize the list that will hold your farm data. We create an empty
-        // ArrayList here. It will be filled with data later from the database.
+        super.onCreate(savedInstanceState);
         farmList = new ArrayList<>();
-
-        // Initialize the adapter and connect it to your data list. From this point on,
-        // the adapter is "watching" the `farmList`. When `farmList` changes, we will
-        // tell the adapter so it can update the screen.
         adapter = new FarmAdapter(farmList);
+        vegetationRepo = new VegetationRepo();
     }
 
-    // --- FRAGMENT LIFECYCLE: onCreateView ---
-    // This method is called when it's time for the fragment to create its user interface.
-    // This is where you connect your XML layout file (`fragment_main.xml`) to your fragment's code.
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container,
-                             Bundle savedInstanceState) {
-        // "Inflating" the layout means turning your XML file (R.layout.fragment_main)
-        // into actual View objects that can be displayed on the screen.
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main, container, false);
 
-        // --- UI SETUP ---
-        // Now that the view is inflated, we can find specific UI elements within it using their ID.
+        fabAdd = view.findViewById(R.id.fabAdd);
+        fabAdd.setOnClickListener(v -> showAddFarmDialog());
 
-
-
-        // Find the FloatingActionButton (the round button) from your XML layout
-        FloatingActionButton fabAdd = view.findViewById(R.id.fabAdd);
-
-        // Set a listener that waits for the user to click the button.
-        // The code inside this block (the lambda `v -> { ... }`) will run every time the button is clicked.
-        fabAdd.setOnClickListener(v -> {
-            // A Toast is a small popup message that disappears after a few seconds. It's great for testing.
-            Toast.makeText(getContext(), "FAB clicked!", Toast.LENGTH_SHORT).show();
-            showAddFarmDialog();
-
-        });
-
-        // Find the RecyclerView from your XML layout.
         recyclerView = view.findViewById(R.id.recyclerFarm);
-
-        // Tell the RecyclerView HOW to arrange its items. LinearLayoutManager
-        // arranges them in a simple vertical list, like a standard list.
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-
-        // Connect the RecyclerView to your adapter. The RecyclerView now knows to ask
-        // the `adapter` how to create and display each item from the `farmList`.
         recyclerView.setAdapter(adapter);
 
-        // --- DATA LOADING ---
-        // Now that the entire UI is set up and ready, we can start fetching the data to display.
         loadFarmData();
-
-        // Finally, we return the fully configured view, so the Android system can draw it on the screen.
         return view;
     }
 
-    /**
-     * This method starts the process of fetching farm data from your Supabase database.
-     * It runs "asynchronously," meaning the app won't freeze while waiting for the network response.
-     */
     private void loadFarmData() {
-        // Create an instance of your custom SupabaseService, which handles the complex network call.
+        // This method should be updated to use VegetationRepo and a VegetationAdapter
         SupabaseService service = new SupabaseService();
-
-        // Call the method to fetch farms. This happens in the background.
-        // We provide a "callback" object with two methods: onSuccess and onFailure.
-        // The service will call ONE of these two methods when the network request is complete.
         service.fetchFarms(new SupabaseService.FarmCallback() {
-
-            // --- CALLBACK: onSuccess ---
-            // This method is called IF the data was fetched from the server successfully.
-            // The `farms` parameter will contain the list of data from the database.
             @Override
             public void onSuccess(List<Farm> farms) {
-                // --- THREADING: THE MOST IMPORTANT CONCEPT HERE ---
-                // Network responses almost always come back on a BACKGROUND thread.
-                // However, you are ONLY allowed to update the UI from the MAIN thread.
-                // `getActivity().runOnUiThread(...)` is the magic that fixes this. It takes
-                // your UI code and makes sure it runs safely on the main thread, preventing a crash.
-
-                // Safety check: ensure the fragment is still attached to an activity before doing anything.
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        // Clear out any old data that might be in the list from a previous load.
                         farmList.clear();
-                        // Add all the new farms that we just received from the database to our list.
                         farmList.addAll(farms);
-                        // IMPORTANT: Tell the adapter that the underlying data has changed. The adapter will
-                        // then tell the RecyclerView to refresh itself and display the new data.
-                        // If you forget this line, the screen will not update!
                         adapter.notifyDataSetChanged();
                     });
                 }
             }
 
-            // --- CALLBACK: onFailure ---
-            // This method is called IF the network request failed for any reason
-            // (e.g., no internet connection, a database error, incorrect URL).
             @Override
             public void onFailure(Exception e) {
-                // Print the full error details to the Logcat. This is CRITICAL for debugging!
-                // It gives you the technical reason why the request failed.
-                e.printStackTrace();
-
-                // Just like onSuccess, we must use runOnUiThread to show a Toast message.
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() ->
-                            // Show a user-friendly error message on the screen so the user knows what happened.
-                            // `requireContext()` is a safe way to get the context needed for the Toast.
-                            Toast.makeText(requireContext(),
-                                    "Failed to load data: " + e.getMessage(),
-                                    Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), "Failed to load data: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                     );
                 }
             }
-
-
         });
-
-
     }
 
-    private void showAddFarmDialog(){
+    private void showAddFarmDialog() {
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View dialogView = inflater.inflate(R.layout.dialog_add_farm, null);
 
-        // setting up EditTexts and everything
-
-        EditText etDayTempMin = dialogView.findViewById(R.id.etDayTempMin);
-        EditText etDayTempMax = dialogView.findViewById(R.id.etDayTempMax);
-        EditText etNightTempMin = dialogView.findViewById(R.id.etNightTempMin);
-        EditText etNightTempMax = dialogView.findViewById(R.id.etNightTempMax);
-        EditText etDayGroundMin = dialogView.findViewById(R.id.etDayGroundMin);
-        EditText etDayGroundMax = dialogView.findViewById(R.id.etDayGroundMax);
-        EditText etNightGroundMin = dialogView.findViewById(R.id.etNightGroundMin);
-        EditText etNightGroundMax = dialogView.findViewById(R.id.etNightGroundMax);
-        EditText etDayAirMin = dialogView.findViewById(R.id.etDayAirMin);
-        EditText etDayAirMax = dialogView.findViewById(R.id.etDayAirMax);
-        EditText etNightAirMin = dialogView.findViewById(R.id.etNightAirMin);
-        EditText etNightAirMax = dialogView.findViewById(R.id.etNightAirMax);
+        // Find all UI components
+        RadioGroup rgModeSelector = dialogView.findViewById(R.id.rgModeSelector);
+        RadioButton rbAddNew = dialogView.findViewById(R.id.rbAddNew);
+        TextInputLayout tilFarmName = dialogView.findViewById(R.id.tilFarmName);
         EditText etFarmName = dialogView.findViewById(R.id.etFarmName);
+        Spinner spinnerVegetation = dialogView.findViewById(R.id.spinnerVegetation);
+
+        final EditText etDayTempMin = dialogView.findViewById(R.id.etDayTempMin);
+        final EditText etDayTempMax = dialogView.findViewById(R.id.etDayTempMax);
+        final EditText etNightTempMin = dialogView.findViewById(R.id.etNightTempMin);
+        final EditText etNightTempMax = dialogView.findViewById(R.id.etNightTempMax);
+        final EditText etDayGroundMin = dialogView.findViewById(R.id.etDayGroundMin);
+        final EditText etDayGroundMax = dialogView.findViewById(R.id.etDayGroundMax);
+        final EditText etNightGroundMin = dialogView.findViewById(R.id.etNightGroundMin);
+        final EditText etNightGroundMax = dialogView.findViewById(R.id.etNightGroundMax);
+        final EditText etDayAirMin = dialogView.findViewById(R.id.etDayAirMin);
+        final EditText etDayAirMax = dialogView.findViewById(R.id.etDayAirMax);
+        final EditText etNightAirMin = dialogView.findViewById(R.id.etNightAirMin);
+        final EditText etNightAirMax = dialogView.findViewById(R.id.etNightAirMax);
+
+        final EditText[] allFields = {etDayTempMin, etDayTempMax, etNightTempMin, etNightTempMax,
+                etDayGroundMin, etDayGroundMax, etNightGroundMin, etNightGroundMax, etDayAirMin, etDayAirMax, etNightAirMin, etNightAirMax};
 
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setView(dialogView)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    Toast.makeText(getContext(), "Added Farm", Toast.LENGTH_SHORT).show();
+        // --- Initial State Setup ---
+        // Fetch all vegetations to populate the spinner later.
+        vegetationRepo.fetchVegetations(new VegetationRepo.FetchVegetationsCallback() {
+            @Override
+            public void onSuccess(List<Vegetation> vegetations) {
+                allVegetations = vegetations;
+                // Get just the names for the spinner
+                List<String> vegetationNames = allVegetations.stream().map(Vegetation::getName).collect(Collectors.toList());
+                ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, vegetationNames);
+                spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                spinnerVegetation.setAdapter(spinnerAdapter);
+            }
 
-                    // Get Text from EditTexts
-                    String farmName = etFarmName.getText().toString();
-
-                    //temp
-                    float dayTempMin = Float.parseFloat(etDayTempMin.getText().toString());
-                    float dayTempMax = Float.parseFloat(etDayTempMax.getText().toString());
-                    float nightTempMin = Float.parseFloat(etNightTempMin.getText().toString());
-                    float nightTempMax = Float.parseFloat(etNightTempMax.getText().toString());
-
-                    // Ground
-                    float dayGroundMin = Float.parseFloat(etDayGroundMin.getText().toString());
-                    float dayGroundMax = Float.parseFloat(etDayGroundMax.getText().toString());
-                    float nightGroundMin = Float.parseFloat(etNightGroundMin.getText().toString());
-                    float nightGroundMax = Float.parseFloat(etNightGroundMax.getText().toString());
-
-                    //Air
-                    float dayAirMin = Float.parseFloat(etDayAirMin.getText().toString());
-                    float dayAirMax = Float.parseFloat(etDayAirMax.getText().toString());
-                    float nightAirMin = Float.parseFloat(etNightAirMin.getText().toString());
-                    float nightAirMax = Float.parseFloat(etNightAirMax.getText().toString());
-
-                    Vegetation veg = new Vegetation(1,farmName, dayTempMin, dayTempMax, nightTempMin, nightTempMax, dayGroundMin, dayGroundMax, nightGroundMin, nightGroundMax, dayAirMin, dayAirMax, nightAirMin, nightAirMax);
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(getContext(), "Could not load existing vegetations.", Toast.LENGTH_SHORT).show();
+            }
+        });
 
 
+        // --- UI Logic for Mode Switching ---
+        rgModeSelector.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.rbAddNew) {
+                isEditMode = false;
+                tilFarmName.setVisibility(View.VISIBLE);
+                spinnerVegetation.setVisibility(View.GONE);
+                clearForm(allFields, etFarmName);
+            } else {
+                isEditMode = true;
+                tilFarmName.setVisibility(View.GONE);
+                spinnerVegetation.setVisibility(View.VISIBLE);
+                // If there are vegetations, select the first one by default
+                if (!allVegetations.isEmpty()) {
+                    spinnerVegetation.setSelection(0);
+                    selectedVegetation = allVegetations.get(0);
+                    populateForm(selectedVegetation, allFields);
+                }
+            }
+        });
 
-                })
-                .setNegativeButton("Cancel", (dialog, which) -> {
-                    Toast.makeText(getContext(), "You Cancled", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                });
+        spinnerVegetation.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedVegetation = allVegetations.get(position);
+                populateForm(selectedVegetation, allFields);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { selectedVegetation = null; }
+        });
+
+
+        // --- Dialog Builder ---
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setView(dialogView);
+        builder.setPositiveButton("Save", null);
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 
         AlertDialog dialog = builder.create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+
+                // --- Validation ---
+                boolean isNameValid = true;
+                if (!isEditMode) { // Only validate name field if in "Add New" mode
+                    if (TextUtils.isEmpty(etFarmName.getText().toString())) {
+                        etFarmName.setError("Name is required");
+                        isNameValid = false;
+                    }
+                } else if (selectedVegetation == null) {
+                    Toast.makeText(getContext(), "Please select a vegetation to edit.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                boolean allNumericFieldsFilled = true;
+                for (EditText field : allFields) {
+                    if (TextUtils.isEmpty(field.getText().toString())) {
+                        field.setError("This field is required");
+                        allNumericFieldsFilled = false;
+                    }
+                }
+
+                if (!isNameValid || !allNumericFieldsFilled) {
+                    Toast.makeText(getContext(), "Please fill all fields.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // --- Save or Update ---
+                try {
+                    Vegetation vegetationToSave = isEditMode ? selectedVegetation : new Vegetation();
+                    if (isEditMode) {
+                        vegetationToSave.setId(selectedVegetation.getId());
+                    } else {
+                        vegetationToSave.setName(etFarmName.getText().toString());
+                    }
+
+                    vegetationToSave.setDayTempMin(Float.parseFloat(etDayTempMin.getText().toString()));
+                    vegetationToSave.setDayTempMax(Float.parseFloat(etDayTempMax.getText().toString()));
+                    vegetationToSave.setNightTempMin(Float.parseFloat(etNightTempMin.getText().toString()));
+                    vegetationToSave.setNightTempMax(Float.parseFloat(etNightTempMax.getText().toString()));
+                    vegetationToSave.setDayGroundHumidMin(Float.parseFloat(etDayGroundMin.getText().toString()));
+                    vegetationToSave.setDayGroundHumidMax(Float.parseFloat(etDayGroundMax.getText().toString()));
+                    vegetationToSave.setNightGroundHumidMin(Float.parseFloat(etNightGroundMin.getText().toString()));
+                    vegetationToSave.setNightGroundHumidMax(Float.parseFloat(etNightGroundMax.getText().toString()));
+                    vegetationToSave.setDayAirHumidMin(Float.parseFloat(etDayAirMin.getText().toString()));
+                    vegetationToSave.setDayAirHumidMax(Float.parseFloat(etDayAirMax.getText().toString()));
+                    vegetationToSave.setNightAirHumidMin(Float.parseFloat(etNightAirMin.getText().toString()));
+                    vegetationToSave.setNightAirHumidMax(Float.parseFloat(etNightAirMax.getText().toString()));
+
+                    if (isEditMode) {
+                        // UPDATE EXISTING
+                        vegetationRepo.updateVegetation(vegetationToSave, new VegetationRepo.UpdateVegetationCallback() {
+                            @Override
+                            public void onSuccess() {
+                                Toast.makeText(getContext(), "Vegetation updated!", Toast.LENGTH_SHORT).show();
+                                loadFarmData();
+                                dialog.dismiss();
+                            }
+                            @Override
+                            public void onFailure(Exception e) {
+                                Toast.makeText(getContext(), "Update failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    } else {
+                        // ADD NEW
+                        vegetationRepo.addVegetation(vegetationToSave, new VegetationRepo.AddVegetationCallback() {
+                            @Override
+                            public void onSuccess() {
+                                Toast.makeText(getContext(), "Vegetation added!", Toast.LENGTH_SHORT).show();
+                                loadFarmData();
+                                dialog.dismiss();
+                            }
+                            @Override
+                            public void onFailure(Exception e) {
+                                Toast.makeText(getContext(), "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+
+                } catch (NumberFormatException e) {
+                    Toast.makeText(getContext(), "Please ensure all numeric fields are valid.", Toast.LENGTH_LONG).show();
+                }
+            });
+        });
+
         dialog.show();
-
-
-
     }
 
+    // Helper method to populate the form with data from a selected vegetation
+    private void populateForm(Vegetation veg, EditText[] fields) {
+        fields[0].setText(String.valueOf(veg.getDayTempMin()));
+        fields[1].setText(String.valueOf(veg.getDayTempMax()));
+        fields[2].setText(String.valueOf(veg.getNightTempMin()));
+        fields[3].setText(String.valueOf(veg.getNightTempMax()));
+        fields[4].setText(String.valueOf(veg.getDayGroundHumidMin()));
+        fields[5].setText(String.valueOf(veg.getDayGroundHumidMax()));
+        fields[6].setText(String.valueOf(veg.getNightGroundHumidMin()));
+        fields[7].setText(String.valueOf(veg.getNightGroundHumidMax()));
+        fields[8].setText(String.valueOf(veg.getDayAirHumidMin()));
+        fields[9].setText(String.valueOf(veg.getDayAirHumidMax()));
+        fields[10].setText(String.valueOf(veg.getNightAirHumidMin()));
+        fields[11].setText(String.valueOf(veg.getNightAirHumidMax()));
+    }
 
-
-
+    // Helper method to clear all form fields
+    private void clearForm(EditText[] fields, EditText nameField) {
+        nameField.setText("");
+        for (EditText field : fields) {
+            field.setText("");
+        }
+    }
 }
