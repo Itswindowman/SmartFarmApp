@@ -2,6 +2,7 @@ package com.example.smartfarmapp;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -95,6 +96,7 @@ public class VegetationRepo {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e("VegetationRepo", "Vegetation add failed: " + e.getMessage());
                 // The request failed (e.g., no internet). Switch to the main thread to deliver the error.
                 mainHandler.post(() -> callback.onFailure(e));
             }
@@ -106,6 +108,7 @@ public class VegetationRepo {
                     // Success! Switch to the main thread to call the onSuccess callback.
                     mainHandler.post(callback::onSuccess);
                 } else {
+                    Log.e("VegetationRepo", "Vegetation add response code: " + response.code());
                     // The server responded with an error code. Deliver the error on the main thread.
                     mainHandler.post(() -> callback.onFailure(new IOException("Unexpected code " + response)));
                 }
@@ -134,8 +137,9 @@ public class VegetationRepo {
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
-             @Override
+            @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e("VegetationRepo", "Vegetation update failed: " + e.getMessage());
                 mainHandler.post(() -> callback.onFailure(e));
             }
 
@@ -144,6 +148,7 @@ public class VegetationRepo {
                 if (response.isSuccessful()) {
                     mainHandler.post(callback::onSuccess);
                 } else {
+                    Log.e("VegetationRepo", "Vegetation update response code: " + response.code());
                     mainHandler.post(() -> callback.onFailure(new IOException("Unexpected code " + response)));
                 }
                 response.close();
@@ -183,10 +188,12 @@ public class VegetationRepo {
                     }
                     // 1. Get the raw JSON string from the response.
                     String json = responseBody.string();
+                    Log.d("VegetationRepo", "Vegetation JSON response: " + json);
                     // 2. Define the type of data we expect (a List of Vegetation objects).
                     Type listType = new TypeToken<List<Vegetation>>() {}.getType();
                     // 3. Use Gson to deserialize the JSON string into a list of Java objects.
                     final List<Vegetation> vegetations = gson.fromJson(json, listType);
+                    Log.d("VegetationRepo", "Parsed vegetations: " + vegetations);
                     // 4. Deliver the successful result on the main thread.
                     mainHandler.post(() -> callback.onSuccess(vegetations));
                 } catch (Exception e) {

@@ -60,9 +60,13 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
 
         // Use the `holder` to access the TextViews inside the row's layout and set their text.
         // We get the data from our `farm` object and display it.
-        holder.tvTemp.setText("Temp: " + farm.getTemp() + "°C");
-        holder.tvGroundHumid.setText("Ground Humidity: " + farm.getGroundHumid() + "%");
-        holder.tvAirHumid.setText("Air Humidity: " + farm.getAirHumid() + "%");
+        Integer temp = farm.getTemp();
+        Integer groundHumid = farm.getGroundHumid();
+        Integer airHumid = farm.getAirHumid();
+
+        holder.tvTemp.setText("Temp: " + (temp != null ? temp : "N/A") + "°C");
+        holder.tvGroundHumid.setText("Ground Humidity: " + (groundHumid != null ? groundHumid : "N/A") + "%");
+        holder.tvAirHumid.setText("Air Humidity: " + (airHumid != null ? airHumid : "N/A") + "%");
 
         // The date from the database is often in a technical format (ISO 8601).
         // We use our helper function `formatDate` to turn it into a more human-readable string.

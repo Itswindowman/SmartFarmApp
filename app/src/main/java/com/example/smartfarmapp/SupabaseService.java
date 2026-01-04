@@ -2,6 +2,7 @@ package com.example.smartfarmapp;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import okhttp3.*;
 import com.google.gson.Gson;
@@ -12,6 +13,7 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 // --- EXPLANATION ---
+// This is FarmRepo
 // This is a "service" class. In this context, it doesn't mean an official Android Service,
 // but rather a helper class dedicated to a single purpose: communicating with your Supabase backend.
 // This is a great practice called "Separation of Concerns." It keeps your complex networking
@@ -54,6 +56,7 @@ public class SupabaseService {
     // --- THE MAIN METHOD ---
     // This is the public method that your UI code (e.g., MainFragment) will call.
     public void fetchFarms(FarmCallback callback) {
+        Log.d("SupabaseService", "fetchFarms called with URL: " + SUPABASE_URL);
 
         // --- BUILDING THE REQUEST ---
         // Here, we use OkHttp to construct the network request.
@@ -76,6 +79,7 @@ public class SupabaseService {
             // (e.g., no internet connection).
             @Override
             public void onFailure(Call call, IOException e) {
+                Log.e("SupabaseService", "Farm fetch failed: " + e.getMessage());
                 // We are on a BACKGROUND thread here. We use our `mainHandler` to switch
                 // to the MAIN thread before calling the `onFailure` method from our own FarmCallback interface.
                 mainHandler.post(() -> callback.onFailure(e));
@@ -101,18 +105,21 @@ public class SupabaseService {
 
                     // Convert the raw response body into a single JSON string.
                     String json = responseBody.string();
+                    Log.d("SupabaseService", "Farm JSON response: " + json);
 
                     // --- DESERIALIZATION WITH GSON ---
                     // This is where the magic happens. We tell Gson to take the `json` string
                     // and convert it into a `List` of `Farm` objects.
                     Type listType = new TypeToken<List<Farm>>() {}.getType();
                     final List<Farm> farms = gson.fromJson(json, listType);
+                    Log.d("SupabaseService", "Parsed farms: " + farms);
 
                     // Now that we have our list of Java objects, we use the `mainHandler` again
                     // to switch to the MAIN thread and deliver the successful result.
                     mainHandler.post(() -> callback.onSuccess(farms));
 
                 } catch (Exception e) {
+                    Log.e("SupabaseService", "Farm fetch exception: " + e.getMessage(), e);
                     // If any part of the `try` block fails (e.g., parsing the JSON, unsuccessful response),
                     // we catch the exception and treat it as a failure.
                     // We switch to the MAIN thread to deliver the error.
