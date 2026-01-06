@@ -7,17 +7,19 @@
     tools:context=".MainFragment">
 
     <!-- Header text -->
+
+
+    <!-- RecyclerView stays unchanged -->
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🌱 Current Plant Status"
-        android:textSize="20sp"
-        android:textStyle="bold"
+        android:layout_margin="16dp"
+        android:text="🌱 Current Plant Status: "
         android:textColor="@android:color/black"
-        android:layout_margin="16dp" />
+        android:textSize="20sp"
+        android:textStyle="bold" />
 
-    <!-- RecyclerView stays unchanged -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerFarm"
         android:layout_width="match_parent"

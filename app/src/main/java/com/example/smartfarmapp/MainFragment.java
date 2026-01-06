@@ -12,6 +12,7 @@ import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -37,6 +38,7 @@ public class MainFragment extends Fragment {
     // New member variables for the dialog logic
     private List<Vegetation> allVegetations = new ArrayList<>();
     private Vegetation selectedVegetation = null;
+    private TextView tvActiveVegetation;
     private boolean isEditMode = false;
 
     public MainFragment() {}
@@ -47,6 +49,11 @@ public class MainFragment extends Fragment {
         farmList = new ArrayList<>();
         adapter = new FarmAdapter(farmList);
         vegetationRepo = new VegetationRepo();
+
+        tvActiveVegetation = requireActivity().findViewById(R.id.textView);
+
+
+
     }
 
     @Override
@@ -153,6 +160,7 @@ public class MainFragment extends Fragment {
                 if (!allVegetations.isEmpty()) {
                     spinnerVegetation.setSelection(0);
                     selectedVegetation = allVegetations.get(0);
+
                     populateForm(selectedVegetation, allFields);
                 }
             }
@@ -163,6 +171,7 @@ public class MainFragment extends Fragment {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 selectedVegetation = allVegetations.get(position);
                 populateForm(selectedVegetation, allFields);
+
             }
             @Override
             public void onNothingSelected(AdapterView<?> parent) { selectedVegetation = null; }

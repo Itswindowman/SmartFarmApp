@@ -1,12 +1,14 @@
 package com.example.smartfarmapp;
 
-import com.google.gson.annotations.SerializedName;
-
-
 public class Vegetation {
-    private int id;
-    private String name;
 
+    // --- IMPORTANT FIX ---
+    // Changed `int` to `Long`. The `Long` wrapper class can be `null`.
+    // When creating a new vegetation, this `id` will be null.
+    // Gson will then OMIT the `id` field from the JSON it sends to Supabase,
+    // which is the correct way to ask Supabase to generate a new, unique ID.
+    private Long id;
+    private String name;
 
     private float dayTempMin;
     private float dayTempMax;
@@ -23,22 +25,8 @@ public class Vegetation {
     private float nightAirHumidMin;
     private float nightAirHumidMax;
 
-    public Vegetation(int id, String name, float dayTempMin, float dayTempMax, float nightTempMin, float nightTempMax, float dayGroundHumidMin, float dayGroundHumidMax, float nightGroundHumidMin, float nightGroundHumidMax, float dayAirHumidMin, float dayAirHumidMax, float nightAirHumidMin, float nightAirHumidMax) {
-        this.id = id;
-        this.name = name;
-        this.dayTempMin = dayTempMin;
-        this.dayTempMax = dayTempMax;
-        this.nightTempMin = nightTempMin;
-        this.nightTempMax = nightTempMax;
-        this.dayGroundHumidMin = dayGroundHumidMin;
-        this.dayGroundHumidMax = dayGroundHumidMax;
-        this.nightGroundHumidMin = nightGroundHumidMin;
-        this.nightGroundHumidMax = nightGroundHumidMax;
-        this.dayAirHumidMin = dayAirHumidMin;
-        this.dayAirHumidMax = dayAirHumidMax;
-        this.nightAirHumidMin = nightAirHumidMin;
-        this.nightAirHumidMax = nightAirHumidMax;
-    }
+    // A no-argument constructor is required for Gson and your MainFragment.
+    public Vegetation() {}
 
     public void setDayTempMin(float dayTempMin) {
         this.dayTempMin = dayTempMin;
@@ -88,12 +76,21 @@ public class Vegetation {
         this.nightAirHumidMax = nightAirHumidMax;
     }
 
-    public int getId() {
+    // Updated getter and setter to use `Long`.
+    public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public float getDayTempMin() {
@@ -143,22 +140,4 @@ public class Vegetation {
     public float getNightAirHumidMax() {
         return nightAirHumidMax;
     }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Vegetation()
-    {}
-
-
-
-
-
-
-
 }
