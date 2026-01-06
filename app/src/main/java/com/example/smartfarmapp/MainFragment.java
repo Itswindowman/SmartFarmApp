@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -34,11 +35,10 @@ public class MainFragment extends Fragment {
     private List<Farm> farmList;
     private FloatingActionButton fabAdd;
     private VegetationRepo vegetationRepo;
+    private TextView tvActiveVegetation;
 
-    // New member variables for the dialog logic
     private List<Vegetation> allVegetations = new ArrayList<>();
     private Vegetation selectedVegetation = null;
-    private TextView tvActiveVegetation;
     private boolean isEditMode = false;
 
     public MainFragment() {}
@@ -49,11 +49,6 @@ public class MainFragment extends Fragment {
         farmList = new ArrayList<>();
         adapter = new FarmAdapter(farmList);
         vegetationRepo = new VegetationRepo();
-
-        tvActiveVegetation = requireActivity().findViewById(R.id.textView);
-
-
-
     }
 
     @Override
@@ -66,6 +61,8 @@ public class MainFragment extends Fragment {
         recyclerView = view.findViewById(R.id.recyclerFarm);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
+
+        tvActiveVegetation = view.findViewById(R.id.tvActiveVegetation);
 
         loadFarmData();
         return view;
@@ -101,9 +98,7 @@ public class MainFragment extends Fragment {
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View dialogView = inflater.inflate(R.layout.dialog_add_farm, null);
 
-        // Find all UI components
         RadioGroup rgModeSelector = dialogView.findViewById(R.id.rgModeSelector);
-        RadioButton rbAddNew = dialogView.findViewById(R.id.rbAddNew);
         TextInputLayout tilFarmName = dialogView.findViewById(R.id.tilFarmName);
         EditText etFarmName = dialogView.findViewById(R.id.etFarmName);
         Spinner spinnerVegetation = dialogView.findViewById(R.id.spinnerVegetation);
@@ -124,14 +119,10 @@ public class MainFragment extends Fragment {
         final EditText[] allFields = {etDayTempMin, etDayTempMax, etNightTempMin, etNightTempMax,
                 etDayGroundMin, etDayGroundMax, etNightGroundMin, etNightGroundMax, etDayAirMin, etDayAirMax, etNightAirMin, etNightAirMax};
 
-
-        // --- Initial State Setup ---
-        // Fetch all vegetations to populate the spinner later.
         vegetationRepo.fetchVegetations(new VegetationRepo.FetchVegetationsCallback() {
             @Override
             public void onSuccess(List<Vegetation> vegetations) {
                 allVegetations = vegetations;
-                // Get just the names for the spinner
                 List<String> vegetationNames = allVegetations.stream().map(Vegetation::getName).collect(Collectors.toList());
                 ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, vegetationNames);
                 spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -144,53 +135,63 @@ public class MainFragment extends Fragment {
             }
         });
 
-
-        // --- UI Logic for Mode Switching ---
-        rgModeSelector.setOnCheckedChangeListener((group, checkedId) -> {
-            if (checkedId == R.id.rbAddNew) {
-                isEditMode = false;
-                tilFarmName.setVisibility(View.VISIBLE);
-                spinnerVegetation.setVisibility(View.GONE);
-                clearForm(allFields, etFarmName);
-            } else {
-                isEditMode = true;
-                tilFarmName.setVisibility(View.GONE);
-                spinnerVegetation.setVisibility(View.VISIBLE);
-                // If there are vegetations, select the first one by default
-                if (!allVegetations.isEmpty()) {
-                    spinnerVegetation.setSelection(0);
-                    selectedVegetation = allVegetations.get(0);
-
-                    populateForm(selectedVegetation, allFields);
-                }
-            }
-        });
-
-        spinnerVegetation.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                selectedVegetation = allVegetations.get(position);
-                populateForm(selectedVegetation, allFields);
-
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) { selectedVegetation = null; }
-        });
-
-
-        // --- Dialog Builder ---
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setView(dialogView);
+        // Add a third button for setting the active profile
+        builder.setNeutralButton("Set Active", null);
         builder.setPositiveButton("Save", null);
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 
         AlertDialog dialog = builder.create();
 
         dialog.setOnShowListener(dialogInterface -> {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+            Button btnNeutral = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+            btnNeutral.setVisibility(View.GONE); // Hide it by default
 
-                // --- Validation ---
-                boolean isNameValid = true;
+            rgModeSelector.setOnCheckedChangeListener((group, checkedId) -> {
+                if (checkedId == R.id.rbAddNew) {
+                    isEditMode = false;
+                    tilFarmName.setVisibility(View.VISIBLE);
+                    spinnerVegetation.setVisibility(View.GONE);
+                    btnNeutral.setVisibility(View.GONE); // Hide "Set Active" in add mode
+                    clearForm(allFields, etFarmName);
+                } else {
+                    isEditMode = true;
+                    tilFarmName.setVisibility(View.GONE);
+                    spinnerVegetation.setVisibility(View.VISIBLE);
+                    btnNeutral.setVisibility(View.VISIBLE); // Show "Set Active" in edit mode
+                    if (!allVegetations.isEmpty()) {
+                        spinnerVegetation.setSelection(0);
+                        selectedVegetation = allVegetations.get(0);
+                        populateForm(selectedVegetation, allFields);
+                    }
+                }
+            });
+
+            spinnerVegetation.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    selectedVegetation = allVegetations.get(position);
+                    populateForm(selectedVegetation, allFields);
+                }
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) { selectedVegetation = null; }
+            });
+
+            btnNeutral.setOnClickListener(v -> {
+                if (selectedVegetation != null) {
+                    tvActiveVegetation.setText("Monitoring Profile: " + selectedVegetation.getName());
+                    adapter.setActiveVegetation(selectedVegetation);
+                    Toast.makeText(getContext(), selectedVegetation.getName() + " is now the active monitoring profile.", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                } else {
+                    Toast.makeText(getContext(), "Please select a vegetation first.", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+                // Save logic remains the same
+                 boolean isNameValid = true;
                 if (!isEditMode) { // Only validate name field if in "Add New" mode
                     if (TextUtils.isEmpty(etFarmName.getText().toString())) {
                         etFarmName.setError("Name is required");
@@ -214,7 +215,6 @@ public class MainFragment extends Fragment {
                     return;
                 }
 
-                // --- Save or Update ---
                 try {
                     Vegetation vegetationToSave = isEditMode ? selectedVegetation : new Vegetation();
                     if (isEditMode) {
@@ -237,7 +237,6 @@ public class MainFragment extends Fragment {
                     vegetationToSave.setNightAirHumidMax(Float.parseFloat(etNightAirMax.getText().toString()));
 
                     if (isEditMode) {
-                        // UPDATE EXISTING
                         vegetationRepo.updateVegetation(vegetationToSave, new VegetationRepo.UpdateVegetationCallback() {
                             @Override
                             public void onSuccess() {
@@ -251,7 +250,6 @@ public class MainFragment extends Fragment {
                             }
                         });
                     } else {
-                        // ADD NEW
                         vegetationRepo.addVegetation(vegetationToSave, new VegetationRepo.AddVegetationCallback() {
                             @Override
                             public void onSuccess() {
@@ -275,7 +273,6 @@ public class MainFragment extends Fragment {
         dialog.show();
     }
 
-    // Helper method to populate the form with data from a selected vegetation
     private void populateForm(Vegetation veg, EditText[] fields) {
         fields[0].setText(String.valueOf(veg.getDayTempMin()));
         fields[1].setText(String.valueOf(veg.getDayTempMax()));
@@ -291,7 +288,6 @@ public class MainFragment extends Fragment {
         fields[11].setText(String.valueOf(veg.getNightAirHumidMax()));
     }
 
-    // Helper method to clear all form fields
     private void clearForm(EditText[] fields, EditText nameField) {
         nameField.setText("");
         for (EditText field : fields) {
