@@ -1,6 +1,11 @@
 package com.example.smartfarmapp;
 
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -15,8 +20,13 @@ import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.Manifest;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,18 +34,33 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputLayout;
 
+import org.w3c.dom.Notation;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class MainFragment extends Fragment {
 
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    // Permission is granted. You can now send notifications.
+                    Toast.makeText(getContext(), "Notification permission granted.", Toast.LENGTH_SHORT).show();
+                } else {
+                    // Permission denied. Explain to the user why you need it.
+                    Toast.makeText(getContext(), "Notifications will not be shown as permission was denied.", Toast.LENGTH_LONG).show();
+                }
+            });
+
+    public static final String CHANNEL_ID = "FarmAlerts";
     private RecyclerView recyclerView;
     private FarmAdapter adapter;
     private List<Farm> farmList;
     private FloatingActionButton fabAdd;
     private VegetationRepo vegetationRepo;
     private TextView tvActiveVegetation;
+    private Button CameraBtn;
 
     private List<Vegetation> allVegetations = new ArrayList<>();
     private Vegetation selectedVegetation = null;
@@ -49,6 +74,9 @@ public class MainFragment extends Fragment {
         farmList = new ArrayList<>();
         adapter = new FarmAdapter(farmList);
         vegetationRepo = new VegetationRepo();
+
+        createNotificationChannel();
+
     }
 
     @Override
@@ -64,30 +92,42 @@ public class MainFragment extends Fragment {
 
         tvActiveVegetation = view.findViewById(R.id.tvActiveVegetation);
 
+        CameraBtn = view.findViewById(R.id.CameraBtn);
+        CameraBtn.setOnClickListener(v -> {
+            // Camera Action
+        });
+
+        askForNotificationPermission();
         loadFarmData();
         return view;
     }
 
+
     private void loadFarmData() {
-        // This method should be updated to use VegetationRepo and a VegetationAdapter
         SupabaseService service = new SupabaseService();
         service.fetchFarms(new SupabaseService.FarmCallback() {
             @Override
-            public void onSuccess(List<Farm> farms) {
-                if (getActivity() != null) {
+            public void onSuccess(List<Farm> farms) {  // when internet reqeust works
+                if (getActivity() != null) { // Check if the fragment is still attached
                     getActivity().runOnUiThread(() -> {
-                        farmList.clear();
-                        farmList.addAll(farms);
-                        adapter.notifyDataSetChanged();
+                        farmList.clear(); // Clear the old list
+                        farmList.addAll(farms); // Add the new list (new Data)
+                        adapter.notifyDataSetChanged(); // Tell the adapter to update the RecyclerView
+
+                        // --- NOTIFICATION LOGIC ---
+                        checkForNotifications();
+                        // --- END NOTIFICATION LOGIC ---
+
+
                     });
                 }
             }
 
             @Override
-            public void onFailure(Exception e) {
+            public void onFailure(Exception e) { // when internet request fails
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(), "Failed to load data: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), "Failed to load data: " + e.getMessage(), Toast.LENGTH_SHORT).show() //toast that says that things failed
                     );
                 }
             }
@@ -95,6 +135,9 @@ public class MainFragment extends Fragment {
     }
 
     private void showAddFarmDialog() {
+
+        // Setting up the "Screen" of the dialogView
+
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View dialogView = inflater.inflate(R.layout.dialog_add_farm, null);
 
@@ -116,16 +159,23 @@ public class MainFragment extends Fragment {
         final EditText etNightAirMin = dialogView.findViewById(R.id.etNightAirMin);
         final EditText etNightAirMax = dialogView.findViewById(R.id.etNightAirMax);
 
+        // an Array that stores all the fields
         final EditText[] allFields = {etDayTempMin, etDayTempMax, etNightTempMin, etNightTempMax,
                 etDayGroundMin, etDayGroundMax, etNightGroundMin, etNightGroundMax, etDayAirMin, etDayAirMax, etNightAirMin, etNightAirMax};
 
-        vegetationRepo.fetchVegetations(new VegetationRepo.FetchVegetationsCallback() {
+        vegetationRepo.fetchVegetations(new VegetationRepo.FetchVegetationsCallback() { // Asybcronous Call to get the list of vegetations (happens in the background)
             @Override
             public void onSuccess(List<Vegetation> vegetations) {
                 allVegetations = vegetations;
-                List<String> vegetationNames = allVegetations.stream().map(Vegetation::getName).collect(Collectors.toList());
+
+                // this is so the driodiwb cab display them
+                List<String> vegetationNames = allVegetations.stream().map(Vegetation::getName).collect(Collectors.toList()); // Modern java way to convert a list of Veggies Objects to a simple list of strings (with just the names).
+
+                // spinnerAdapter for the spinner with the names of the vegetations
                 ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, vegetationNames);
+
                 spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                // sets the adapter
                 spinnerVegetation.setAdapter(spinnerAdapter);
             }
 
@@ -137,12 +187,19 @@ public class MainFragment extends Fragment {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setView(dialogView);
-        // Add a third button for setting the active profile
-        builder.setNeutralButton("Set Active", null);
-        builder.setPositiveButton("Save", null);
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
 
-        AlertDialog dialog = builder.create();
+        /* this are 3 buttons
+        the Reason for the null in positive/Neutral is the we put the logic later
+        thats because we want to validate the data first (check for empty boxes) before we are closing
+        if we did otherwise the Dialog will close before we can validate the data.
+        so we set them to null and add the logic later
+        * */
+        builder.setNeutralButton("Set Active", null); // makes the vegetation active
+        builder.setPositiveButton("Save", null); // saves data
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss()); // dismiss stuff
+
+        AlertDialog dialog = builder.create(); // Now the builder is done and the actual dialog is created.
+
 
         dialog.setOnShowListener(dialogInterface -> {
             Button btnNeutral = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
@@ -182,6 +239,10 @@ public class MainFragment extends Fragment {
                 if (selectedVegetation != null) {
                     tvActiveVegetation.setText("Monitoring Profile: " + selectedVegetation.getName());
                     adapter.setActiveVegetation(selectedVegetation);
+
+                    //Trigger for notifactions
+                    checkForNotifications();
+
                     Toast.makeText(getContext(), selectedVegetation.getName() + " is now the active monitoring profile.", Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 } else {
@@ -294,4 +355,147 @@ public class MainFragment extends Fragment {
             field.setText("");
         }
     }
+
+    public void createNotificationChannel(){
+        // Create the NotificationChannel, but only on API 26+ (Android 8.0 Oreo)
+        // The 'if' statement checks if the device's version is O or higher.
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){ // CORRECTED
+            CharSequence name = "Farm Alerts";
+            String description = "Notification for when farm sensors are out of range";
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = requireActivity().getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+
+    /**
+     * Builds and displays the detailed notification on the user's device.
+     */
+    private void sendOutOfRangeNotification(String details, Vegetation activeProfile) {int icon = R.drawable.ic_launcher_foreground; // TODO: Replace with a real notification icon
+
+        Notification.Builder builder;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder = new Notification.Builder(requireContext(), CHANNEL_ID);
+        } else {
+            builder = new Notification.Builder(requireContext());
+        }
+
+        // --- IMPROVEMENT ---
+        // Add the profile name to the title for better context
+        builder.setSmallIcon(icon)
+                .setContentTitle("Alert for Profile: " + activeProfile.getName())
+                .setContentText(details)
+                .setStyle(new Notification.BigTextStyle().bigText(details))
+                .setPriority(Notification.PRIORITY_HIGH)
+                .setAutoCancel(true);
+        // -------------------
+
+        NotificationManager notificationManager = requireContext().getSystemService(NotificationManager.class);
+        notificationManager.notify(1, builder.build());
+    }
+
+
+    /**
+     * Checks farm data against a profile and returns a detailed error string.
+     */
+
+    private String getOutOfRangeDetails(Farm farm, Vegetation profile)
+    {
+        if(profile == null || farm == null) return "";
+
+        boolean isDay = adapter.isDayTime(farm.getDateTime());
+        StringBuilder details = new StringBuilder();
+
+            float tempMin;
+            float tempMax;
+            float groundHumidMin;
+            float groundHumidMax;
+            float airHumidMin;
+            float airHumidMax;
+
+            // Use a standard if/else block to set the min/max values
+            if (isDay) {
+                tempMin = profile.getDayTempMin();
+                tempMax = profile.getDayTempMax();
+                groundHumidMin = profile.getDayGroundHumidMin();
+                groundHumidMax = profile.getDayGroundHumidMax();
+                airHumidMin = profile.getDayAirHumidMin();
+                airHumidMax = profile.getDayAirHumidMax();
+            } else { // It's night
+                tempMin = profile.getNightTempMin();
+                tempMax = profile.getNightTempMax();
+                groundHumidMin = profile.getNightGroundHumidMin();
+                groundHumidMax = profile.getNightGroundHumidMax();
+                airHumidMin = profile.getNightAirHumidMin();
+                airHumidMax = profile.getNightAirHumidMax();
+            }
+
+            // Now check each value against the limits we just set
+
+            // Check Temperature
+            if (farm.getTemp() < tempMin) {
+                details.append(String.format("Temp is too low by %.1f°C. ", tempMin - farm.getTemp()));
+            } else if (farm.getTemp() > tempMax) {
+                details.append(String.format("Temp is too high by %.1f°C. ", farm.getTemp() - tempMax));
+            }
+
+            // Check Ground Humidity
+            if (farm.getGroundHumid() < groundHumidMin) {
+                details.append(String.format("Ground Humid is too low by %.1f%%. ", groundHumidMin - farm.getGroundHumid()));
+            } else if (farm.getGroundHumid() > groundHumidMax) {
+                details.append(String.format("Ground Humid is too high by %.1f%%. ", farm.getGroundHumid() - groundHumidMax));
+            }
+
+            // Check Air Humidity
+            if (farm.getAirHumid() < airHumidMin) {
+                details.append(String.format("Air Humid is too low by %.1f%%. ", airHumidMin - farm.getAirHumid()));
+            } else if (farm.getAirHumid() > airHumidMax) {
+                details.append(String.format("Air Humid is too high by %.1f%%. ", farm.getAirHumid() - airHumidMax));
+            }
+
+            return details.toString().trim(); // .trim() removes any extra space at the end
+
+    }
+
+    private void checkForNotifications() {
+        // 1. Get the current active profile from the adapter
+        Vegetation activeProfile = adapter.getActiveVegetation();
+
+        // 2. Check if we have an active profile and if there is data in our list
+        if (activeProfile != null && !farmList.isEmpty()) {
+            // 3. Get the most recent data entry
+            Farm latestFarmData = farmList.get(0);
+
+            // 4. Get a detailed report
+            String details = getOutOfRangeDetails(latestFarmData, activeProfile);
+
+            // 5. If the report is not empty, send the notification
+            if(!details.isEmpty())
+            {
+                sendOutOfRangeNotification(details, activeProfile);
+            }
+        }
+    }
+
+    // --- ADD THIS METHOD ---
+    private void askForNotificationPermission() {
+        // This is only needed for Android 13 (TIRAMISU) and higher.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_GRANTED) {
+                // Permission is already granted.
+            } else {
+                // Directly ask for the permission.
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
+
+
+
 }

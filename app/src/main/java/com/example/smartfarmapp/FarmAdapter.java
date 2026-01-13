@@ -45,6 +45,10 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
         notifyDataSetChanged();
     }
 
+    public Vegetation getActiveVegetation() {
+        return this.activeVegetation;
+    }
+
     /**
      * --- 1. Creating Views ---
      * This method is called by the RecyclerView when it needs a new row layout to display.
@@ -140,6 +144,8 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * It sets the text color to RED for out-of-range values, GRAY for incomplete data,
      * and the default color for in-range values.
      */
+
+    // Checks the value and sets the text color red if out of range.
     private void checkValue(TextView textView, Double value, Double min, Double max) {
         if (value == null || min == null || max == null) {
             textView.setTextColor(Color.GRAY);
@@ -153,7 +159,7 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
     /**
      * A helper method to determine if a given timestamp is during the day (6:00 AM - 5:59 PM).
      */
-    private boolean isDayTime(String isoDate) {
+    public boolean isDayTime(String isoDate) {
         if (isoDate == null) return true; // Default to daytime if no date is available
         try {
             SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
