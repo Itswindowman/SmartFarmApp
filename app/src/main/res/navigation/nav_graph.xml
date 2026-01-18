@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginPage">
+
+    <fragment
+        android:id="@+id/loginPage"
+        android:name="com.example.smartfarmapp.LoginPage"
+        android:label="fragment_login_page"
+        tools:layout="@layout/fragment_login_page" >
+
+        <!-- This is the crucial action that defines the path to MainFragment -->
+        <action
+            android:id="@+id/action_loginPage_to_mainFragment"
+            app:destination="@id/mainFragment"
+            app:popUpTo="@id/loginPage"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/mainFragment"
+        android:name="com.example.smartfarmapp.MainFragment"
+        android:label="fragment_main"
+        tools:layout="@layout/fragment_main" />
+
+</navigation>

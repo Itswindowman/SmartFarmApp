@@ -11,6 +11,7 @@ recyclerview = "1.4.0"
 fragment = "1.8.9"
 playServicesMaps = "19.2.0"
 cardview = "1.0.0"
+navigationFragment = "2.9.6"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -24,6 +25,7 @@ recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version
 fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 cardview = { group = "androidx.cardview", name = "cardview", version.ref = "cardview" }
+navigation-fragment = { group = "androidx.navigation", name = "navigation-fragment", version.ref = "navigationFragment" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

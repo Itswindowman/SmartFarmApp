@@ -3,48 +3,47 @@ package com.example.smartfarmapp;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.EditText;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.navigation.fragment.NavHostFragment;
+import com.google.android.material.textfield.TextInputEditText;
 
-import com.google.android.material.textfield.TextInputLayout;
+import java.util.Objects;
 
 public class LoginPage extends Fragment {
 
-    private UserRepo userRepo;
-    private EditText etEmail, etPassword;
+    // --- UI Elements ---
+    private TextInputEditText etEmail;
+    private TextInputEditText etPassword;
     private CheckBox cbRememberMe;
-    private Button btnSignIn, btnSignUp;
+    private Button btnSignIn;
+    private Button btnSignUp;
 
-    // Constants for SharedPreferences
+    // --- SharedPreferences for "Remember Me" ---
+    private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "SmartFarmPrefs";
-    private static final String PREF_EMAIL = "email";
-    private static final String PREF_PASSWORD = "password";
-    private static final String PREF_REMEMBER = "remember";
+    private static final String KEY_EMAIL = "email";
+    private static final String KEY_PASSWORD = "password";
+    private static final String KEY_REMEMBER_ME = "remember_me";
+
+    // --- User Repository ---
+    private UserRepo userRepo;
 
     public LoginPage() {
         // Required empty public constructor
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        userRepo = new UserRepo();
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_login_page, container, false);
     }
@@ -53,38 +52,62 @@ public class LoginPage extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Find all UI elements
+        // --- Initialization ---
+        userRepo = new UserRepo();
+        sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+
+        // --- Find UI elements from the layout ---
         etEmail = view.findViewById(R.id.etEmail);
         etPassword = view.findViewById(R.id.etPassword);
         cbRememberMe = view.findViewById(R.id.cbRememberMe);
         btnSignIn = view.findViewById(R.id.btnSignIn);
         btnSignUp = view.findViewById(R.id.btnSignUp);
 
-        // Load saved preferences
+        // --- Load saved preferences ---
         loadPreferences();
 
-        // Set click listeners
+        // --- Set up click listeners for the buttons ---
         btnSignIn.setOnClickListener(v -> handleSignIn());
         btnSignUp.setOnClickListener(v -> handleSignUp());
     }
 
-    private void handleSignIn() {
-        String email = etEmail.getText().toString().trim();
-        String password = etPassword.getText().toString().trim();
+    private void loadPreferences() {
+        boolean shouldRemember = sharedPreferences.getBoolean(KEY_REMEMBER_ME, false);
+        cbRememberMe.setChecked(shouldRemember);
+        if (shouldRemember) {
+            etEmail.setText(sharedPreferences.getString(KEY_EMAIL, ""));
+            etPassword.setText(sharedPreferences.getString(KEY_PASSWORD, ""));
+        }
+    }
 
-        if (!validateInput(email, password)) {
+    private void handleSignIn() {
+        String email = Objects.requireNonNull(etEmail.getText()).toString().trim();
+        String password = Objects.requireNonNull(etPassword.getText()).toString().trim();
+
+        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
+            Toast.makeText(getContext(), "Email and Password cannot be empty", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Save preferences if "Remember Me" is checked
-        savePreferences(email, password, cbRememberMe.isChecked());
-
-        // Use the UserRepo to sign in
         userRepo.getUser(email, password, new UserRepo.GetUserCallback() {
             @Override
             public void onSuccess(User user) {
                 Toast.makeText(getContext(), "Sign In Successful!", Toast.LENGTH_SHORT).show();
-                // Navigate to the MainFragment
+
+                // Handle "Remember Me" logic
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                if (cbRememberMe.isChecked()) {
+                    editor.putBoolean(KEY_REMEMBER_ME, true);
+                    editor.putString(KEY_EMAIL, email);
+                    editor.putString(KEY_PASSWORD, password);
+                } else {
+                    editor.remove(KEY_EMAIL);
+                    editor.remove(KEY_PASSWORD);
+                    editor.putBoolean(KEY_REMEMBER_ME, false);
+                }
+                editor.apply();
+
+                // Use NavController to navigate to the main fragment
                 NavHostFragment.findNavController(LoginPage.this)
                         .navigate(R.id.action_loginPage_to_mainFragment);
             }
@@ -97,24 +120,26 @@ public class LoginPage extends Fragment {
     }
 
     private void handleSignUp() {
-        String email = etEmail.getText().toString().trim();
-        String password = etPassword.getText().toString().trim();
+        String email = Objects.requireNonNull(etEmail.getText()).toString().trim();
+        String password = Objects.requireNonNull(etPassword.getText()).toString().trim();
 
-        if (!validateInput(email, password)) {
+        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
+            Toast.makeText(getContext(), "Email and Password cannot be empty for Sign Up", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Create a new user object
         User newUser = new User();
         newUser.setEmail(email);
-        newUser.setPassword(password);
-        // You can set other default values for a new user here if needed
+        newUser.setPassword(password); // WARNING: In a real app, hash the password!
+        newUser.setFarmID(1); // Placeholder
+        newUser.setLatitude(0.0f); // Placeholder
+        newUser.setLongitude(0.0f); // Placeholder
 
-        // Use the UserRepo to add the new user
         userRepo.addUser(newUser, new UserRepo.AddUserCallback() {
             @Override
             public void onSuccess() {
-                Toast.makeText(getContext(), "Sign Up Successful! Please sign in.", Toast.LENGTH_LONG).show();
+                Toast.makeText(getContext(), "Sign Up Successful! Please Sign In.", Toast.LENGTH_LONG).show();
+                etPassword.setText(""); // Clear password field
             }
 
             @Override
@@ -122,47 +147,5 @@ public class LoginPage extends Fragment {
                 Toast.makeText(getContext(), "Sign Up Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         });
-    }
-
-    private boolean validateInput(String email, String password) {
-        if (TextUtils.isEmpty(email)) {
-            etEmail.setError("Email is required");
-            return false;
-        }
-        if (TextUtils.isEmpty(password)) {
-            etPassword.setError("Password is required");
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Saves user preferences (email, password, remember me choice) to SharedPreferences.
-     */
-    private void savePreferences(String email, String password, boolean remember) {
-        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        if (remember) {
-            editor.putString(PREF_EMAIL, email);
-            editor.putString(PREF_PASSWORD, password);
-            editor.putBoolean(PREF_REMEMBER, true);
-        } else {
-            // If "Remember Me" is unchecked, clear the saved credentials.
-            editor.clear();
-        }
-        editor.apply();
-    }
-
-    /**
-     * Loads saved user preferences from SharedPreferences and populates the fields.
-     */
-    private void loadPreferences() {
-        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        boolean rememberMe = sharedPreferences.getBoolean(PREF_REMEMBER, false);
-        cbRememberMe.setChecked(rememberMe);
-        if (rememberMe) {
-            etEmail.setText(sharedPreferences.getString(PREF_EMAIL, ""));
-            etPassword.setText(sharedPreferences.getString(PREF_PASSWORD, ""));
-        }
     }
 }
