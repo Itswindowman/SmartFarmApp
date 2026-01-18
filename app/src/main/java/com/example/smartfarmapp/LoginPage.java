@@ -34,6 +34,8 @@ public class LoginPage extends Fragment {
     private static final String KEY_EMAIL = "email";
     private static final String KEY_PASSWORD = "password";
     private static final String KEY_REMEMBER_ME = "remember_me";
+    private static final String FARM_ID = "farm_id";
+
 
     // --- User Repository ---
     private UserRepo userRepo;
@@ -100,6 +102,7 @@ public class LoginPage extends Fragment {
                     editor.putBoolean(KEY_REMEMBER_ME, true);
                     editor.putString(KEY_EMAIL, email);
                     editor.putString(KEY_PASSWORD, password);
+                    editor.putInt(FARM_ID, user.getFarmID());
                 } else {
                     editor.remove(KEY_EMAIL);
                     editor.remove(KEY_PASSWORD);

@@ -4,11 +4,13 @@ import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -33,6 +35,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.gson.Gson;
 
 import org.w3c.dom.Notation;
 
@@ -91,6 +94,13 @@ public class MainFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         tvActiveVegetation = view.findViewById(R.id.tvActiveVegetation);
+        Vegetation currentActiveProfile = adapter.getActiveVegetation();
+        if (currentActiveProfile != null) {
+            tvActiveVegetation.setText("Monitoring Profile: " + currentActiveProfile.getName());
+        } else {
+            tvActiveVegetation.setText("No active profile set");
+        }
+
 
         CameraBtn = view.findViewById(R.id.CameraBtn);
         CameraBtn.setOnClickListener(v -> {
@@ -102,23 +112,59 @@ public class MainFragment extends Fragment {
         return view;
     }
 
+    /**
+     * Loads the active vegetation profile from SharedPreferences and sets it on the adapter.
+     */
+    private void loadActiveVegetationProfile() {
+        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", android.content.Context.MODE_PRIVATE);
+
+        // 1. Get the saved JSON string. Default to null if not found.
+        String vegetationJson = sharedPreferences.getString("active_vegetation_profile", null);
+
+        if (vegetationJson != null) {
+            // 2. If a saved profile exists, parse it back into a Vegetation object
+            Gson gson = new Gson();
+            Vegetation savedProfile = gson.fromJson(vegetationJson, Vegetation.class);
+
+            // 3. Set it as the active profile on the adapter and update the UI text
+            if (savedProfile != null) {
+                adapter.setActiveVegetation(savedProfile);
+                // We need to update tvActiveVegetation, but the view isn't created yet.
+                // We will do that in onCreateView.
+            }
+        }
+    }
+
 
     private void loadFarmData() {
+        // 1. Get SharedPreferences instance
+        // Use the correct android.content.Context
+        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", android.content.Context.MODE_PRIVATE);
+
+        // 2. Read the saved FARM_ID. Use a default value of -1 to indicate it wasn't found.
+        int userFarmId = sharedPreferences.getInt("farm_id", -1);
+
+        // 3. Check if the farmId is valid before making a network call.
+        if (userFarmId == -1) {
+            Toast.makeText(getContext(), "Error: No Farm ID found for user.", Toast.LENGTH_LONG).show();
+            // Use the correct, standard android.util.Log
+            Log.e("MainFragment", "Could not load farm data, userFarmId is -1.");
+            return; // Stop the method here because we can't fetch data without an ID
+        }
+
+        // 4. Call the updated fetchFarms method with the user's farm ID
         SupabaseService service = new SupabaseService();
-        service.fetchFarms(new SupabaseService.FarmCallback() {
+        service.fetchFarms(userFarmId, new SupabaseService.FarmCallback() {
             @Override
-            public void onSuccess(List<Farm> farms) {  // when internet reqeust works
-                if (getActivity() != null) { // Check if the fragment is still attached
+            public void onSuccess(List<Farm> farms) {  // when internet request works
+                if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         farmList.clear(); // Clear the old list
-                        farmList.addAll(farms); // Add the new list (new Data)
-                        adapter.notifyDataSetChanged(); // Tell the adapter to update the RecyclerView
+                        farmList.addAll(farms); // Add the new list (should contain just one farm)
+                        adapter.notifyDataSetChanged(); // Update the RecyclerView
 
-                        // --- NOTIFICATION LOGIC ---
+                        // Now run the notification check on the new data
                         checkForNotifications();
-                        // --- END NOTIFICATION LOGIC ---
-
-
                     });
                 }
             }
@@ -127,12 +173,13 @@ public class MainFragment extends Fragment {
             public void onFailure(Exception e) { // when internet request fails
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(), "Failed to load data: " + e.getMessage(), Toast.LENGTH_SHORT).show() //toast that says that things failed
+                            Toast.makeText(requireContext(), "Failed to load farm data: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                     );
                 }
             }
         });
     }
+
 
     private void showAddFarmDialog() {
 
@@ -239,6 +286,19 @@ public class MainFragment extends Fragment {
                 if (selectedVegetation != null) {
                     tvActiveVegetation.setText("Monitoring Profile: " + selectedVegetation.getName());
                     adapter.setActiveVegetation(selectedVegetation);
+
+                    // 1. Get SharedPrefs Editor
+                    SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", android.content.Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+
+                    // Convert the vegetation Object to a JSON string
+                    Gson gson = new Gson();
+                    String vegetationJson = gson.toJson(selectedVegetation);
+
+                    // 3. save the JSON string with a key
+                    editor.putString("active_vegetation", vegetationJson);
+                    editor.apply();
+
 
                     //Trigger for notifactions
                     checkForNotifications();

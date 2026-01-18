@@ -23,7 +23,7 @@ import java.util.List;
 
 public class SupabaseService {
 
-    private static final String SUPABASE_URL = "https://lqdbdpnqapcrgwdapbba.supabase.co/rest/v1/Farm?select=*";
+    private static final String SUPABASE_URL = "https://lqdbdpnqapcrgwdapbba.supabase.co/rest/v1/Farm";
 
     // This is your public API key.
     private static final String SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxZGJkcG5xYXBjcmd3ZGFwYmJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4OTE0NTEsImV4cCI6MjA3OTQ2NzQ1MX0.d0UCxvHeMxLurzJULgYrYyLdWqrCo4zqaOWW0Ptt1aM";
@@ -55,77 +55,53 @@ public class SupabaseService {
 
     // --- THE MAIN METHOD ---
     // This is the public method that your UI code (e.g., MainFragment) will call.
-    public void fetchFarms(FarmCallback callback) {
-        Log.d("SupabaseService", "fetchFarms called with URL: " + SUPABASE_URL);
+    // Now accepts a farmId to filter the results.
+    public void fetchFarms(int farmId, FarmCallback callback) {
+        // Build the URL to filter by the 'id' column.
+        // The query "?id=eq.{farmId}" tells Supabase to only return rows where the id column equals our farmId.
+        String urlWithFilter = SUPABASE_URL + "?id=eq." + farmId;
+        Log.d("SupabaseService", "fetchFarms called with URL: " + urlWithFilter);
 
-        // --- BUILDING THE REQUEST ---
-        // Here, we use OkHttp to construct the network request.
         Request request = new Request.Builder()
-                .url(SUPABASE_URL) // Set the URL to connect to.
-                // HTTP Headers are extra pieces of information sent with the request.
-                // Supabase requires these specific headers for authentication and to know you want JSON data.
+                .url(urlWithFilter) // Use the new URL with the filter
                 .addHeader("apikey", SUPABASE_API_KEY)
                 .addHeader("Authorization", "Bearer " + SUPABASE_API_KEY)
                 .addHeader("Accept", "application/json")
-                .build(); // Build the final, immutable Request object.
+                .build();
 
-        // --- EXECUTING THE REQUEST ASYNCHRONOUSLY ---
-        // `client.newCall(request)` creates a call ready to be executed.
-        // `.enqueue(...)` tells OkHttp to run this call in the BACKGROUND. It will not freeze the app.
-        // We provide a `Callback` object to handle the response when it comes back.
         client.newCall(request).enqueue(new Callback() {
-
-            // This OkHttp callback method is triggered if the request fails at a low level
-            // (e.g., no internet connection).
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.e("SupabaseService", "Farm fetch failed: " + e.getMessage());
-                // We are on a BACKGROUND thread here. We use our `mainHandler` to switch
-                // to the MAIN thread before calling the `onFailure` method from our own FarmCallback interface.
                 mainHandler.post(() -> callback.onFailure(e));
             }
 
-            // This OkHttp callback method is triggered if the server sends back a response.
-            // This response could be a success (like code 200 OK) or a server error (like 404 Not Found).
             @Override
             public void onResponse(Call call, Response response) {
                 try {
-                    // First, check if the HTTP response code indicates success (usually 200).
                     if (!response.isSuccessful()) {
-                        // If not successful, we create our own error and pass it to the failure callback.
                         throw new IOException("Unexpected code " + response);
                     }
-
-                    // Get the body of the response, which contains the JSON data.
                     ResponseBody responseBody = response.body();
                     if (responseBody == null) {
-                        // If there is no body for some reason, we consider it a failure.
                         throw new IOException("Response body is null");
                     }
-
-                    // Convert the raw response body into a single JSON string.
                     String json = responseBody.string();
                     Log.d("SupabaseService", "Farm JSON response: " + json);
 
-                    // --- DESERIALIZATION WITH GSON ---
-                    // This is where the magic happens. We tell Gson to take the `json` string
-                    // and convert it into a `List` of `Farm` objects.
                     Type listType = new TypeToken<List<Farm>>() {}.getType();
                     final List<Farm> farms = gson.fromJson(json, listType);
                     Log.d("SupabaseService", "Parsed farms: " + farms);
 
-                    // Now that we have our list of Java objects, we use the `mainHandler` again
-                    // to switch to the MAIN thread and deliver the successful result.
+                    // Deliver the result (which should be a list containing just one farm)
                     mainHandler.post(() -> callback.onSuccess(farms));
 
                 } catch (Exception e) {
                     Log.e("SupabaseService", "Farm fetch exception: " + e.getMessage(), e);
-                    // If any part of the `try` block fails (e.g., parsing the JSON, unsuccessful response),
-                    // we catch the exception and treat it as a failure.
-                    // We switch to the MAIN thread to deliver the error.
                     mainHandler.post(() -> callback.onFailure(e));
                 }
             }
         });
     }
+
 }
