@@ -9,16 +9,11 @@
     <!-- This is the new TextView to display the active vegetation -->
     <TextView
         android:id="@+id/tvActiveVegetation"
-        android:layout_width="0dp"
+        android:layout_width="379dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="630dp"
         android:text="Monitoring Profile: None"
         android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
         android:textColor="?attr/colorPrimary"
-        app:layout_constraintBottom_toTopOf="@+id/CameraBtn"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -50,13 +45,11 @@
         android:id="@+id/CameraBtn"
         android:layout_width="56dp"
         android:layout_height="52dp"
-        android:layout_marginStart="28dp"
-        android:layout_marginBottom="16dp"
         android:background="@drawable/outline_add_a_photo_24"
         android:text="Button"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/fabAdd"
-        app:layout_constraintHorizontal_bias="0.081"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
