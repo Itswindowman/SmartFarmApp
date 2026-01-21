@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -39,8 +40,11 @@ import com.google.gson.Gson;
 
 import org.w3c.dom.Notation;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class MainFragment extends Fragment {
@@ -55,6 +59,11 @@ public class MainFragment extends Fragment {
                     Toast.makeText(getContext(), "Notifications will not be shown as permission was denied.", Toast.LENGTH_LONG).show();
                 }
             });
+
+    private Button btnHistory;
+    private HistoryRepo historyRepo;
+
+
 
     public static final String CHANNEL_ID = "FarmAlerts";
     private RecyclerView recyclerView;
@@ -77,6 +86,11 @@ public class MainFragment extends Fragment {
         farmList = new ArrayList<>();
         adapter = new FarmAdapter(farmList);
         vegetationRepo = new VegetationRepo();
+
+
+        // In onCreate() method, add:
+        historyRepo = new HistoryRepo();
+
 
         createNotificationChannel();
 
@@ -102,9 +116,19 @@ public class MainFragment extends Fragment {
         }
 
 
+        btnHistory = view.findViewById(R.id.btnHistory);
+        if (btnHistory != null) {
+            btnHistory.setOnClickListener(v -> {
+                showHistoryDialog();
+            });
+        }
+
         CameraBtn = view.findViewById(R.id.CameraBtn);
+
+        // Also update the CameraBtn to save to history when tapped:
         CameraBtn.setOnClickListener(v -> {
-            // Camera Action
+            // Instead of doing nothing, save current state to history
+            saveCurrentStateToHistory();
         });
 
         askForNotificationPermission();
@@ -556,6 +580,109 @@ public class MainFragment extends Fragment {
         }
     }
 
+    private void saveCurrentStateToHistory() {
+        if (farmList.isEmpty()) {
+            Toast.makeText(getContext(), "No farm data available", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        Farm latestFarm = farmList.get(0);
+        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
+        int farmId = sharedPreferences.getInt("farm_id", 1);
 
+        // Make sure you're using the correct History constructor
+        History history = new History(
+                (long) farmId,
+                (long) latestFarm.getTemp(),
+                (long) latestFarm.getGroundHumid(),
+                (long) latestFarm.getAirHumid()
+        );
+
+        Vegetation activeProfile = adapter.getActiveVegetation();
+        if (activeProfile != null) {
+            history.setNotes("Active profile: " + activeProfile.getName());
+        }
+
+        historyRepo.addHistory(history, new HistoryRepo.AddHistoryCallback() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(getContext(), "✓ Farm state saved to history!", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(getContext(), "Failed to save: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.e("MainFragment", "Save to history failed", e);
+            }
+        });
+    }
+
+    /**
+     * Show history entries in a dialog - ONLY ONE VERSION!
+     */
+    private void showHistoryDialog() {
+        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
+        int farmId = sharedPreferences.getInt("farm_id", 1);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("History Log");
+        builder.setMessage("Loading history...");
+        builder.setCancelable(true);
+
+        AlertDialog loadingDialog = builder.create();
+        loadingDialog.show();
+
+        // Use fetchFarmHistory for the FarmHistory table
+        historyRepo.fetchFarmHistory((long) farmId, new HistoryRepo.FetchHistoryCallback() {
+            @Override
+            public void onSuccess(List<History> historyList) {
+                loadingDialog.dismiss();
+
+                if (historyList.isEmpty()) {
+                    Toast.makeText(getContext(), "No history entries yet", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                StringBuilder historyText = new StringBuilder();
+                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault());
+
+                for (int i = 0; i < Math.min(historyList.size(), 10); i++) {
+                    History h = historyList.get(i);
+                    // Use the NEW getter methods from the updated History class
+                    // In showHistoryDialog() method:
+                    historyText.append(sdf.format(h.getRecordedAt()))  // Make sure it's getRecordedAt() not getRecorded_at()
+                            .append(" - Temp: ").append(h.getTemperature())
+                            .append("°C, Ground: ").append(h.getGroundHumidity())
+                            .append("%, Air: ").append(h.getAirHumidity())
+                            .append("%\n");
+
+                    if (h.getNotes() != null && !h.getNotes().isEmpty()) {
+                        historyText.append("Notes: ").append(h.getNotes()).append("\n");
+                    }
+                    historyText.append("\n");
+                }
+
+                AlertDialog.Builder resultBuilder = new AlertDialog.Builder(requireContext());
+                resultBuilder.setTitle("Recent History (" + historyList.size() + " entries)");
+                resultBuilder.setMessage(historyText.toString());
+                resultBuilder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+                resultBuilder.setNeutralButton("Save Current", (dialog, which) -> {
+                    saveCurrentStateToHistory();
+                });
+                resultBuilder.show();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                loadingDialog.dismiss();
+                Toast.makeText(getContext(), "Failed to load history: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 }
+
+
+
+
+
+
