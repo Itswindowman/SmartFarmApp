@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.text.method.ScrollingMovementMethod;
 import android.view.LayoutInflater;
 import android.util.Log;
 import android.view.View;
@@ -18,6 +19,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
@@ -136,6 +138,20 @@ public class MainFragment extends Fragment {
         return view;
     }
 
+
+    // --- ADD THIS METHOD ---
+    private void askForNotificationPermission() {
+        // This is only needed for Android 13 (TIRAMISU) and higher.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_GRANTED) {
+                // Permission is already granted.
+            } else {
+                // Directly ask for the permission.
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
     /**
      * Loads the active vegetation profile from SharedPreferences and sets it on the adapter.
      */
@@ -567,19 +583,6 @@ public class MainFragment extends Fragment {
     }
 
     // --- ADD THIS METHOD ---
-    private void askForNotificationPermission() {
-        // This is only needed for Android 13 (TIRAMISU) and higher.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS) ==
-                    PackageManager.PERMISSION_GRANTED) {
-                // Permission is already granted.
-            } else {
-                // Directly ask for the permission.
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
-            }
-        }
-    }
-
     private void saveCurrentStateToHistory() {
         if (farmList.isEmpty()) {
             Toast.makeText(getContext(), "No farm data available", Toast.LENGTH_SHORT).show();
@@ -589,24 +592,124 @@ public class MainFragment extends Fragment {
         Farm latestFarm = farmList.get(0);
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
         int farmId = sharedPreferences.getInt("farm_id", 1);
+        Vegetation activeVegetation = adapter.getActiveVegetation();
 
-        // Make sure you're using the correct History constructor
-        History history = new History(
-                (long) farmId,
-                (long) latestFarm.getTemp(),
-                (long) latestFarm.getGroundHumid(),
-                (long) latestFarm.getAirHumid()
-        );
+        // Create dialog for user notes
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Save to History");
 
-        Vegetation activeProfile = adapter.getActiveVegetation();
-        if (activeProfile != null) {
-            history.setNotes("Active profile: " + activeProfile.getName());
+        // Create layout
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 30, 50, 30);
+
+        // Current readings
+        TextView tvReadings = new TextView(getContext());
+        tvReadings.setText("Current Readings:\n" +
+                "• Temperature: " + latestFarm.getTemp() + "°C\n" +
+                "• Ground Humidity: " + latestFarm.getGroundHumid() + "%\n" +
+                "• Air Humidity: " + latestFarm.getAirHumid() + "%");
+        tvReadings.setTextSize(16);
+        tvReadings.setPadding(0, 0, 0, 20);
+
+        // Farm state (in range/out of range)
+        TextView tvFarmState = new TextView(getContext());
+        if (activeVegetation != null) {
+            String rangeDetails = getOutOfRangeDetails(latestFarm, activeVegetation);
+            if (rangeDetails.isEmpty()) {
+                tvFarmState.setText("✅ All values within range");
+                tvFarmState.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark));
+            } else {
+                tvFarmState.setText("⚠️ Some values out of range");
+                tvFarmState.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark));
+            }
+        } else {
+            tvFarmState.setText("No active profile for range checking");
+            tvFarmState.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray));
         }
+        tvFarmState.setTextSize(14);
+        tvFarmState.setPadding(0, 0, 0, 20);
 
+        // Active vegetation info
+        TextView tvVegetation = new TextView(getContext());
+        if (activeVegetation != null) {
+            tvVegetation.setText("Active Profile: " + activeVegetation.getName());
+            tvVegetation.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_blue_dark));
+        } else {
+            tvVegetation.setText("No active vegetation profile");
+            tvVegetation.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray));
+        }
+        tvVegetation.setTextSize(14);
+        tvVegetation.setPadding(0, 0, 0, 20);
+
+        // User notes input
+        EditText etNotes = new EditText(getContext());
+        etNotes.setHint("Add your notes here (optional)");
+        etNotes.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+        etNotes.setMinHeight(100);
+
+        layout.addView(tvReadings);
+        layout.addView(tvFarmState);
+        layout.addView(tvVegetation);
+        layout.addView(etNotes);
+        builder.setView(layout);
+
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String userNotes = etNotes.getText().toString().trim();
+
+            // Create history entry
+            History history = new History(
+                    (long) farmId,
+                    (long) latestFarm.getTemp(),
+                    (long) latestFarm.getGroundHumid(),
+                    (long) latestFarm.getAirHumid()
+            );
+
+            // Build combined notes
+            StringBuilder combinedNotes = new StringBuilder();
+
+            // 1. Add farm state (range check)
+            if (activeVegetation != null) {
+                String rangeDetails = getOutOfRangeDetails(latestFarm, activeVegetation);
+                if (rangeDetails.isEmpty()) {
+                    combinedNotes.append("✅ All values within range");
+                } else {
+                    combinedNotes.append("⚠️ ").append(rangeDetails);
+                }
+                combinedNotes.append(" | ");
+
+                // 2. Add vegetation profile
+                combinedNotes.append("Profile: ").append(activeVegetation.getName());
+            } else {
+                combinedNotes.append("No active profile set");
+            }
+
+            // 3. Add user notes if provided
+            if (!userNotes.isEmpty()) {
+                combinedNotes.append(" | Notes: ").append(userNotes);
+            }
+
+            history.setNotes(combinedNotes.toString());
+
+            // Optional: Save vegetation ID reference
+            if (activeVegetation != null && activeVegetation.getId() != null) {
+                history.setPictureUrl("veg_" + activeVegetation.getId());
+            }
+
+            // Save to database
+            saveHistoryEntry(history);
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+
+        builder.show();
+    }
+
+    private void saveHistoryEntry(History history) {
         historyRepo.addHistory(history, new HistoryRepo.AddHistoryCallback() {
             @Override
             public void onSuccess() {
-                Toast.makeText(getContext(), "✓ Farm state saved to history!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "✓ Saved to history!", Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -632,8 +735,8 @@ public class MainFragment extends Fragment {
         AlertDialog loadingDialog = builder.create();
         loadingDialog.show();
 
-        // Use fetchFarmHistory for the FarmHistory table
-        historyRepo.fetchFarmHistory((long) farmId, new HistoryRepo.FetchHistoryCallback() {
+        // Use simple fetch first
+        historyRepo.fetchAllHistory(new HistoryRepo.FetchHistoryCallback() {
             @Override
             public void onSuccess(List<History> historyList) {
                 loadingDialog.dismiss();
@@ -643,32 +746,59 @@ public class MainFragment extends Fragment {
                     return;
                 }
 
+                // Create scrollable TextView
+                TextView textView = new TextView(getContext());
+                textView.setPadding(30, 30, 30, 30);
+                textView.setTextSize(14);
+                textView.setMovementMethod(new ScrollingMovementMethod());
+
                 StringBuilder historyText = new StringBuilder();
                 SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault());
 
-                for (int i = 0; i < Math.min(historyList.size(), 10); i++) {
+                for (int i = 0; i < historyList.size(); i++) {
                     History h = historyList.get(i);
-                    // Use the NEW getter methods from the updated History class
-                    // In showHistoryDialog() method:
-                    historyText.append(sdf.format(h.getRecordedAt()))  // Make sure it's getRecordedAt() not getRecorded_at()
-                            .append(" - Temp: ").append(h.getTemperature())
-                            .append("°C, Ground: ").append(h.getGroundHumidity())
-                            .append("%, Air: ").append(h.getAirHumidity())
-                            .append("%\n");
 
+                    // Entry number
+                    historyText.append("Entry #").append(i + 1).append("\n");
+
+                    // Timestamp
+                    historyText.append("🕒 ").append(sdf.format(h.getRecordedAt())).append("\n\n");
+
+                    // Sensor readings
+                    historyText.append("📊 Sensor Readings:\n");
+                    historyText.append("  • Temperature: ").append(h.getTemperature()).append("°C\n");
+                    historyText.append("  • Ground Humidity: ").append(h.getGroundHumidity()).append("%\n");
+                    historyText.append("  • Air Humidity: ").append(h.getAirHumidity()).append("%\n\n");
+
+                    // Notes (parsed)
                     if (h.getNotes() != null && !h.getNotes().isEmpty()) {
-                        historyText.append("Notes: ").append(h.getNotes()).append("\n");
+                        historyText.append("📝 Notes:\n");
+
+                        // Split notes by pipe separator
+                        String[] noteParts = h.getNotes().split("\\|");
+                        for (String part : noteParts) {
+                            String trimmed = part.trim();
+                            if (!trimmed.isEmpty()) {
+                                // Add bullet point
+                                historyText.append("  • ").append(trimmed).append("\n");
+                            }
+                        }
                     }
-                    historyText.append("\n");
+
+                    historyText.append("\n────────────────────────\n\n");
                 }
 
+                textView.setText(historyText.toString());
+
+                // Create dialog with scrollable content
                 AlertDialog.Builder resultBuilder = new AlertDialog.Builder(requireContext());
-                resultBuilder.setTitle("Recent History (" + historyList.size() + " entries)");
-                resultBuilder.setMessage(historyText.toString());
+                resultBuilder.setTitle("Farm History (" + historyList.size() + " entries)");
+                resultBuilder.setView(textView);
                 resultBuilder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-                resultBuilder.setNeutralButton("Save Current", (dialog, which) -> {
+                resultBuilder.setNeutralButton("➕ Save New", (dialog, which) -> {
                     saveCurrentStateToHistory();
                 });
+
                 resultBuilder.show();
             }
 

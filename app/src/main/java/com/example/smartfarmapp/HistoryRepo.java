@@ -92,6 +92,8 @@ public class HistoryRepo {
     /**
      * Fetch all FarmHistory entries for current farm
      */
+
+
     public void fetchFarmHistory(Long farmId, FetchHistoryCallback callback) {
         // Fetch history for specific farm, newest first
         String url = HISTORY_URL + "?farmId=eq." + farmId + "&order=recordedAt.desc";
@@ -130,6 +132,52 @@ public class HistoryRepo {
                     mainHandler.post(() -> callback.onSuccess(historyList));
                 } catch (Exception e) {
                     Log.e("HistoryRepo", "Error parsing FarmHistory JSON", e);
+                    mainHandler.post(() -> callback.onFailure(e));
+                }
+
+                response.close();
+            }
+        });
+    }
+
+    public void fetchAllHistory(FetchHistoryCallback callback) {
+        // Simple fetch all entries without filtering
+        String url = HISTORY_URL + "?order=recordedAt.desc";
+        Log.d("HistoryRepo", "Fetching all history: " + url);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("apikey", SUPABASE_API_KEY)
+                .addHeader("Authorization", "Bearer " + SUPABASE_API_KEY)
+                .addHeader("Accept", "application/json")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e("HistoryRepo", "Fetch all failed", e);
+                mainHandler.post(() -> callback.onFailure(e));
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                Log.d("HistoryRepo", "Fetch all response: " + response.code() + " - " + responseBody);
+
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onFailure(
+                            new IOException("HTTP " + response.code() + ": " + responseBody)
+                    ));
+                    return;
+                }
+
+                try {
+                    Type listType = new TypeToken<List<History>>() {}.getType();
+                    List<History> historyList = gson.fromJson(responseBody, listType);
+                    Log.d("HistoryRepo", "✓ Found " + historyList.size() + " total entries");
+                    mainHandler.post(() -> callback.onSuccess(historyList));
+                } catch (Exception e) {
+                    Log.e("HistoryRepo", "Parse error", e);
                     mainHandler.post(() -> callback.onFailure(e));
                 }
 
