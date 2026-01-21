@@ -133,7 +133,7 @@ public class LoginPage extends Fragment {
 
         User newUser = new User();
         newUser.setEmail(email);
-        newUser.setPassword(password); // WARNING: In a real app, hash the password!
+        newUser.setPassword(password); // I suck at Cyber Security because I don't hash the password!
         newUser.setFarmID(1); // Placeholder
         newUser.setLatitude(0.0f); // Placeholder
         newUser.setLongitude(0.0f); // Placeholder

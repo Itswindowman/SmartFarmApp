@@ -296,7 +296,7 @@ public class MainFragment extends Fragment {
                     String vegetationJson = gson.toJson(selectedVegetation);
 
                     // 3. save the JSON string with a key
-                    editor.putString("active_vegetation", vegetationJson);
+                    editor.putString("active_vegetation_profile", vegetationJson);
                     editor.apply();
 
 
