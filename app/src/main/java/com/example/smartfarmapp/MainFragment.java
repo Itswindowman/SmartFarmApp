@@ -457,7 +457,7 @@ public class MainFragment extends Fragment {
                     if (isEditMode) {
                         vegetationRepo.updateVegetation(vegetationToSave, new VegetationRepo.UpdateVegetationCallback() {
                             @Override
-                            public void onSuccess() {
+                            public void onSuccess(Void result) {
                                 Toast.makeText(getContext(), "Vegetation updated!", Toast.LENGTH_SHORT).show();
                                 loadFarmData(); // Reload data to reflect changes.
                                 dialog.dismiss();
@@ -470,7 +470,7 @@ public class MainFragment extends Fragment {
                     } else {
                         vegetationRepo.addVegetation(vegetationToSave, new VegetationRepo.AddVegetationCallback() {
                             @Override
-                            public void onSuccess() {
+                            public void onSuccess(Void result) {
                                 Toast.makeText(getContext(), "Vegetation added!", Toast.LENGTH_SHORT).show();
                                 loadFarmData(); // Reload data to reflect changes.
                                 dialog.dismiss();
@@ -750,7 +750,7 @@ public class MainFragment extends Fragment {
     private void saveHistoryEntry(History history) {
         historyRepo.addHistory(history, new HistoryRepo.AddHistoryCallback() {
             @Override
-            public void onSuccess() {
+            public void onSuccess(Void result) {
                 Toast.makeText(getContext(), "✓ Saved to history!", Toast.LENGTH_SHORT).show();
             }
 

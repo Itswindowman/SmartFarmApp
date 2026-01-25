@@ -188,7 +188,7 @@ public class LoginPage extends Fragment {
         // Call the repository to add the new user to the database.
         userRepo.addUser(newUser, new UserRepo.AddUserCallback() {
             @Override
-            public void onSuccess() {
+            public void onSuccess(Void result) {
                 // On success, inform the user and clear the password field for them to sign in.
                 Toast.makeText(getContext(), "Sign Up Successful! Please Sign In.", Toast.LENGTH_LONG).show();
                 etPassword.setText(""); // Clear password field for convenience.
