@@ -7,17 +7,15 @@ public class User {
 
     String email;
     String password;
-    int FarmID;
     float latitude;
     float longitude;
 
     public User()
     {}
-    public User(int id, String email, String password, int FarmID, float latitude, float longitude) {
+    public User(int id, String email, String password, float latitude, float longitude) {
         this.id = id;
         this.email = email;
         this.password = password;
-        this.FarmID = FarmID;
         this.latitude = latitude;
         this.longitude = longitude;
     }
@@ -46,13 +44,8 @@ public class User {
         this.password = password;
     }
 
-    public int getFarmID() {
-        return FarmID;
-    }
 
-    public void setFarmID(int farmID) {
-        FarmID = farmID;
-    }
+
 
     public float getLatitude() {
         return latitude;

@@ -170,6 +170,7 @@ public class MainFragment extends Fragment {
         askForNotificationPermission();
         // Load the farm data from the server.
         loadFarmData();
+        loadActiveVegetationProfile();
 
         // Return the created view to be displayed on the screen.
         return view;
@@ -223,11 +224,11 @@ public class MainFragment extends Fragment {
         // Get the SharedPreferences instance to find the user's farm ID.
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
 
-        // Read the saved farm ID. The default value of -1 indicates it wasn't found.
-        int userFarmId = sharedPreferences.getInt("farm_id", -1);
 
+        // Read the saved farm ID. The default value of -1 indicates it wasn't found.
+        int userId = sharedPreferences.getInt("user_id", -1); // Get USER ID
         // If the farm ID is not valid, show an error and stop.
-        if (userFarmId == -1) {
+        if (userId == -1) {
             Toast.makeText(getContext(), "Error: No Farm ID found for user.", Toast.LENGTH_LONG).show();
             Log.e("MainFragment", "Could not load farm data, userFarmId is -1.");
             return;
@@ -235,7 +236,7 @@ public class MainFragment extends Fragment {
 
         // Create an instance of the Supabase service and fetch the farm data.
         SupabaseService service = new SupabaseService();
-        service.fetchFarms(userFarmId, new SupabaseService.FarmCallback() {
+        service.fetchFarms(userId, new SupabaseService.FarmCallback() {
             /**
              * This method is called when the farm data is successfully fetched from the server.
              * @param farms The list of farms returned by the server.
@@ -643,7 +644,7 @@ public class MainFragment extends Fragment {
 
         Farm latestFarm = farmList.get(0);
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
-        int farmId = sharedPreferences.getInt("farm_id", 1);
+        int farmId = latestFarm.getId();
         Vegetation activeVegetation = adapter.getActiveVegetation();
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
@@ -765,27 +766,43 @@ public class MainFragment extends Fragment {
      * Shows the history of sensor readings in a dialog.
      */
     private void showHistoryDialog() {
-        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
-        int farmId = sharedPreferences.getInt("farm_id", 1);
+        // Check if we have farm data
+        if (farmList.isEmpty()) {
+            Toast.makeText(getContext(), "No farm data available to show history", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+        Farm currentFarm = farmList.get(0);
+        int currentFarmId = currentFarm.getId();
+
+        // Debug logging
+        Log.d("HistoryDialog", "Current farm ID: " + currentFarmId);
+        Log.d("HistoryDialog", "Farm UserID: " + currentFarm.getId());
+        Log.d("HistoryDialog", "Farm temp: " + currentFarm.getTemp());
+
+        // Show loading dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("History Log");
-        builder.setMessage("Loading history...");
+        builder.setMessage("Loading history for farm ID: " + currentFarmId + "...");
         builder.setCancelable(true);
 
         AlertDialog loadingDialog = builder.create();
         loadingDialog.show();
 
-        historyRepo.fetchAllHistory(new HistoryRepo.FetchHistoryCallback() {
+        // Use the filtered fetch method
+        historyRepo.fetchHistoryByFarmId(currentFarmId, new HistoryRepo.FetchHistoryCallback() {
             @Override
             public void onSuccess(List<History> historyList) {
                 loadingDialog.dismiss();
 
+                Log.d("HistoryDialog", "Loaded " + historyList.size() + " history entries for farm " + currentFarmId);
+
                 if (historyList.isEmpty()) {
-                    Toast.makeText(getContext(), "No history entries yet", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "No history entries for this farm", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
+                // Create scrollable text view for history
                 TextView textView = new TextView(getContext());
                 textView.setPadding(30, 30, 30, 30);
                 textView.setTextSize(14);
@@ -815,11 +832,14 @@ public class MainFragment extends Fragment {
                         }
                     }
 
+                    // Show which farm this belongs to (for debugging)
+                    historyText.append("\n[Farm ID: ").append(h.getFarmId()).append("]\n");
                     historyText.append("\n────────────────────────\n\n");
                 }
 
                 textView.setText(historyText.toString());
 
+                // Create result dialog
                 AlertDialog.Builder resultBuilder = new AlertDialog.Builder(requireContext());
                 resultBuilder.setTitle("Farm History (" + historyList.size() + " entries)");
                 resultBuilder.setView(textView);
@@ -828,12 +848,18 @@ public class MainFragment extends Fragment {
                     saveCurrentStateToHistory();
                 });
 
+                // Optional: Add delete button if you want to manage history
+                // resultBuilder.setNegativeButton("Clear History", (dialog, which) -> {
+                //     showClearHistoryDialog(currentFarmId);
+                // });
+
                 resultBuilder.show();
             }
 
             @Override
             public void onFailure(Exception e) {
                 loadingDialog.dismiss();
+                Log.e("HistoryDialog", "Failed to load history: " + e.getMessage(), e);
                 Toast.makeText(getContext(), "Failed to load history: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });

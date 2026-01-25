@@ -167,5 +167,49 @@ public class HistoryRepo {
                 response.close(); // Important: always close the response.
             }
         });
+
+
+    }
+
+    public void fetchHistoryByFarmId(long farmId, FetchHistoryCallback callback) {
+        String url = HISTORY_URL + "?farmId=eq." + farmId + "&order=recordedAt.desc";
+        Log.d("HistoryRepo", "Fetching history for farm: " + url);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("apikey", SUPABASE_API_KEY)
+                .addHeader("Authorization", "Bearer " + SUPABASE_API_KEY)
+                .addHeader("Accept", "application/json")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e("HistoryRepo", "Fetch by farmId failed", e);
+                mainHandler.post(() -> callback.onFailure(e));
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                String responseBody = response.body() != null ? response.body().string() : "";
+                Log.d("HistoryRepo", "Fetch by farmId response: " + response.code() + " - " + responseBody);
+
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onFailure(new IOException("HTTP " + response.code() + ": " + responseBody)));
+                    return;
+                }
+
+                try {
+                    Type listType = new TypeToken<List<History>>() {}.getType();
+                    List<History> historyList = gson.fromJson(responseBody, listType);
+                    Log.d("HistoryRepo", "✓ Found " + historyList.size() + " entries for farm " + farmId);
+                    mainHandler.post(() -> callback.onSuccess(historyList));
+                } catch (Exception e) {
+                    Log.e("HistoryRepo", "Parse error", e);
+                    mainHandler.post(() -> callback.onFailure(e));
+                }
+                response.close();
+            }
+        });
     }
 }

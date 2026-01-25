@@ -143,7 +143,7 @@ public class LoginPage extends Fragment {
                     editor.putBoolean(KEY_REMEMBER_ME, true);
                     editor.putString(KEY_EMAIL, email);
                     editor.putString(KEY_PASSWORD, password); // Note: Storing passwords in plain text is insecure.
-                    editor.putInt(FARM_ID, user.getFarmID());
+                    editor.putInt("user_id", user.getId());
                 } else {
                     // If not checked, clear any previously saved credentials.
                     editor.remove(KEY_EMAIL);
@@ -182,7 +182,6 @@ public class LoginPage extends Fragment {
         User newUser = new User();
         newUser.setEmail(email);
         newUser.setPassword(password); // WARNING: Passwords should be hashed before being stored!
-        newUser.setFarmID(1); // Using a placeholder Farm ID.
         newUser.setLatitude(0.0f); // Placeholder
         newUser.setLongitude(0.0f); // Placeholder
 

@@ -54,13 +54,13 @@ public class SupabaseService {
 
     /**
      * The main public method for this service. It fetches the data for a specific farm.
-     * @param farmId The ID of the farm to retrieve data for.
+     * @param UserId The ID of the farm to retrieve data for.
      * @param callback The implementation of the FarmCallback interface, which will handle the result.
      */
-    public void fetchFarms(int farmId, FarmCallback callback) {
+    public void fetchFarms(int UserId, FarmCallback callback) {
         // Build the full URL with a query parameter to filter by the 'id' column.
-        // The query `?id=eq.{farmId}` tells Supabase: "only return rows where the id column equals farmId".
-        String urlWithFilter = SUPABASE_URL + "?id=eq." + farmId;
+        // The query `?id=eq.{UserID}` tells Supabase: "only return rows where the id column equals farmId".
+        String urlWithFilter = SUPABASE_URL + "?UserID=eq." + UserId;
         Log.d("SupabaseService", "fetchFarms called with URL: " + urlWithFilter);
 
         // Build the HTTP GET request. This includes the URL and necessary headers for authentication.
