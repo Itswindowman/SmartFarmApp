@@ -8,18 +8,26 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.view.LayoutInflater;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
@@ -31,11 +39,13 @@ import android.Manifest;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
@@ -84,7 +94,7 @@ public class MainFragment extends Fragment {
     private VegetationRepo vegetationRepo; // The repository for managing vegetation data.
     private TextView tvActiveVegetation; // The text view that displays the name of the active vegetation profile.
     private Button CameraBtn; // Button to save the current state to history.
-
+    private Button LiveCameraBtn;
     // --- STATE VARIABLES ---
     private List<Vegetation> allVegetations = new ArrayList<>(); // A list to hold all available vegetation profiles.
     private Vegetation selectedVegetation = null; // The vegetation profile currently selected in the dialog.
@@ -161,6 +171,13 @@ public class MainFragment extends Fragment {
             saveCurrentStateToHistory();
         });
 
+        LiveCameraBtn = view.findViewById(R.id.LiveCameraBtn);
+        LiveCameraBtn.setOnClickListener(v -> {
+            showLiveCameraDialog();
+        });
+
+
+
         // --- DATA LOADING & PERMISSIONS ---
         // Ask for notification permission if needed.
         askForNotificationPermission();
@@ -172,6 +189,7 @@ public class MainFragment extends Fragment {
 
         // Return the created view to be displayed on the screen.
         return view;
+
     }
 
     private void setupDailyReminderSwitch(View view) {
@@ -502,6 +520,85 @@ public class MainFragment extends Fragment {
         // Show the dialog.
         dialog.show();
     }
+
+    private void showLiveCameraDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext(), R.style.CustomDialogTheme);
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        View dialogView = inflater.inflate(R.layout.dialog_live_camera, null);
+
+        // Initialize views
+        WebView webView = dialogView.findViewById(R.id.webView);
+        View loadingOverlay = dialogView.findViewById(R.id.loadingOverlay);
+        TextView statusText = dialogView.findViewById(R.id.statusText);
+        ImageView btnClose = dialogView.findViewById(R.id.btnClose);
+        MaterialButton btnFullscreen = dialogView.findViewById(R.id.btnFullscreen);
+        MaterialButton btnSnapshot = dialogView.findViewById(R.id.btnSnapshot);
+        MaterialButton btnRecord = dialogView.findViewById(R.id.btnRecord);
+
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        // Load camera stream (replace with your camera URL)
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                loadingOverlay.setVisibility(View.GONE);
+                statusText.setVisibility(View.VISIBLE);
+            }
+        });
+        webView.loadUrl("google.com"); // Replace the actual URL
+
+        // Button click listeners
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        btnFullscreen.setOnClickListener(v -> {
+            // Toggle fullscreen
+            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) webView.getLayoutParams();
+            if (params.height == ConstraintLayout.LayoutParams.MATCH_PARENT) {
+                // Exit fullscreen
+                params.height = 0;
+                params.dimensionRatio = "H,4:3";
+                btnFullscreen.setText("Fullscreen");
+            } else {
+                // Enter fullscreen
+                params.height = ConstraintLayout.LayoutParams.MATCH_PARENT;
+                params.dimensionRatio = "";
+                btnFullscreen.setText("Exit");
+            }
+            webView.setLayoutParams(params);
+        });
+
+        btnSnapshot.setOnClickListener(v -> {
+            // Take snapshot logic
+            Toast.makeText(getContext(), "Snapshot saved!", Toast.LENGTH_SHORT).show();
+        });
+
+        btnRecord.setOnClickListener(v -> {
+            // Record video logic
+            if (btnRecord.getText().toString().equals("REC")) {
+                btnRecord.setText("STOP");
+                btnRecord.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.red)));
+                Toast.makeText(getContext(), "Recording started", Toast.LENGTH_SHORT).show();
+            } else {
+                btnRecord.setText("REC");
+                btnRecord.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green)));
+                Toast.makeText(getContext(), "Recording saved", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        dialog.show();
+
+        // Make dialog fill most of the screen
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+        layoutParams.copyFrom(dialog.getWindow().getAttributes());
+        layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+        layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        dialog.getWindow().setAttributes(layoutParams);
+    }
+
 
     /**
      * Populates the form fields with the data from a Vegetation object.
@@ -875,4 +972,6 @@ public class MainFragment extends Fragment {
             }
         });
     }
+
+
 }

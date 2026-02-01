@@ -6,4 +6,7 @@
     </style>
 
     <style name="Theme.SmartFarmApp" parent="Base.Theme.SmartFarmApp" />
+
+
+
 </resources>

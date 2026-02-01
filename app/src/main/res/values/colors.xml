@@ -25,4 +25,8 @@
         <color name="teal_500">#009688</color> <!-- medium teal -->
         <color name="teal_200">#80CBC4</color> <!-- light teal -->
 
+    <color name="green">#4CAF50</color>
+    <color name="red">#F44336</color>
+    <color name="blue">#2196F3</color>
+    <color name="orange">#FF9800</color>
 </resources>
