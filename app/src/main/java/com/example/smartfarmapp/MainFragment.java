@@ -21,9 +21,9 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.Manifest;
@@ -31,7 +31,6 @@ import android.Manifest;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -41,11 +40,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 
-import org.w3c.dom.Notation;
-
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -172,8 +168,23 @@ public class MainFragment extends Fragment {
         loadFarmData();
         loadActiveVegetationProfile();
 
+        setupDailyReminderSwitch(view);
+
         // Return the created view to be displayed on the screen.
         return view;
+    }
+
+    private void setupDailyReminderSwitch(View view) {
+        Switch switchDailyReminder = view.findViewById(R.id.switchDailyReminder);
+
+        // Load saved state
+        boolean isEnabled = SimpleAlarmManager.isDailyReminderEnabled(requireContext());
+        switchDailyReminder.setChecked(isEnabled);
+
+        // Handle switch changes
+        switchDailyReminder.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            SimpleAlarmManager.setDailyReminder(requireContext(), isChecked);
+        });
     }
 
     /**

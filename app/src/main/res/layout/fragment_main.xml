@@ -33,6 +33,35 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/tvActiveVegetation" />
 
+    <!-- ALARM BUTTON - ADDED HERE -->
+
+    <!-- DAILY REMINDER SWITCH - ADDED HERE -->
+    <LinearLayout
+        android:id="@+id/reminderSwitchLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnHistory">
+
+        <TextView
+            android:id="@+id/tvReminderLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Daily Reminder"
+            android:textSize="16sp"
+            android:layout_marginEnd="16dp" />
+
+        <Switch
+            android:id="@+id/switchDailyReminder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="" />
+
+    </LinearLayout>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerFarm"
         android:layout_width="0dp"
@@ -41,7 +70,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnHistory" />
+        app:layout_constraintTop_toBottomOf="@+id/reminderSwitchLayout" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAdd"
