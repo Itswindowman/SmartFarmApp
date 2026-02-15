@@ -23,8 +23,8 @@ public class SupabaseService extends BaseRepo {
      * The main public method for this service. It fetches the data for a specific farm.
      */
     public void fetchFarms(int UserId, FarmCallback callback) {
-        // Build the full URL with a query parameter to filter by the 'id' column.
-        String urlWithFilter = FARM_URL + "?UserID=eq." + UserId;
+        // Build the full URL with a query parameter to filter by the 'id' column Desending.
+        String urlWithFilter = FARM_URL + "?UserID=eq." + UserId + "&order=id.desc";
         Log.d("SupabaseService", "fetchFarms called with URL: " + urlWithFilter);
 
         // Build the HTTP GET request.
