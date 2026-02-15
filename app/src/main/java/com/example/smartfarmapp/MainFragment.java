@@ -1,6 +1,7 @@
 
 package com.example.smartfarmapp;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -54,7 +55,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.stream.Collectors;
+import android.content.BroadcastReceiver;
+import android.content.Intent;
+import android.content.IntentFilter;
+
 
 /**
  * --- FRAGMENT EXPLANATION ---
@@ -83,6 +90,13 @@ public class MainFragment extends Fragment {
             });
 
     // --- UI & DATA-RELATED VARIABLES ---
+    private BroadcastReceiver dataUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d("MainFragment", "📡 Received broadcast: Data updated!");
+            loadFarmData();
+        }
+    };
     private Button btnHistory; // Button to open the history dialog.
     private HistoryRepo historyRepo; // The repository for managing history data.
 
@@ -99,6 +113,10 @@ public class MainFragment extends Fragment {
     private List<Vegetation> allVegetations = new ArrayList<>(); // A list to hold all available vegetation profiles.
     private Vegetation selectedVegetation = null; // The vegetation profile currently selected in the dialog.
     private boolean isEditMode = false; // A flag to determine if the dialog is in "add" or "edit" mode.
+
+    private int FarmTimer = 1000; // Milisecs
+    private Timer refreshTimer;
+    private TimerTask refreshTask;
 
     /**
      * The default constructor for the fragment. Required for the Android framework.
@@ -242,6 +260,12 @@ public class MainFragment extends Fragment {
             // Set the loaded profile as the active one in the adapter.
             if (savedProfile != null) {
                 adapter.setActiveVegetation(savedProfile);
+                // Save the active vegetation to SharedPreferences for the service
+                if (adapter.getActiveVegetation() != null) {
+                    SharedPreferences prefs = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
+                    prefs.edit().putString("active_vegetation", vegetationJson).apply();
+                    Log.d("MainFragment", "Saved active vegetation to SharedPreferences");
+                }
             }
         }
     }
@@ -250,12 +274,16 @@ public class MainFragment extends Fragment {
      * Loads the farm data from the Supabase server.
      */
     private void loadFarmData() {
+
+        Log.d("MainFragment", "─────────────────────────────────────────");
+        Log.d("MainFragment", "🔄 loadFarmData() STARTED");
         // Get the SharedPreferences instance to find the user's farm ID.
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
 
 
         // Read the saved farm ID. The default value of -1 indicates it wasn't found.
         int userId = sharedPreferences.getInt("user_id", -1); // Get USER ID
+        Log.d("MainFragment", "User ID: " + userId);
         // If the farm ID is not valid, show an error and stop.
         if (userId == -1) {
             Toast.makeText(getContext(), "Error: No Farm ID found for user.", Toast.LENGTH_LONG).show();
@@ -266,26 +294,36 @@ public class MainFragment extends Fragment {
         // Create an instance of the Supabase service and fetch the farm data.
         SupabaseService service = new SupabaseService();
         service.fetchFarms(userId, new SupabaseService.FarmCallback() {
+
             /**
              * This method is called when the farm data is successfully fetched from the server.
              * @param farms The list of farms returned by the server.
              */
             @Override
             public void onSuccess(List<Farm> farms) {
-                // Check if the fragment is still attached to the activity before updating the UI.
-                if (getActivity() != null) {
-                    // All UI updates must be done on the main thread.
-                    getActivity().runOnUiThread(() -> {
-                        // Clear the old data and add the new data to the list.
-                        farmList.clear();
-                        farmList.addAll(farms);
-                        // Notify the adapter that the data has changed so it can update the RecyclerView.
-                        adapter.notifyDataSetChanged();
-                        // Check if the new data triggers any notifications.
-                        checkForNotifications();
-                    });
+                // Check if we CANNOT update (exit early)
+                if (getActivity() == null || !isAdded()) {
+                    Log.e("MainFragment", "❌ Cannot update - fragment not attached");
+                    return;  // ← Exit early
                 }
+
+                // If we get here, we CAN update
+                Log.d("MainFragment", "✅ Fragment attached - updating UI");
+
+                getActivity().runOnUiThread(() -> {
+                    farmList.clear();
+                    farmList.addAll(farms);
+
+                    adapter.notifyDataSetChanged();
+                    recyclerView.post(() -> adapter.notifyDataSetChanged());
+                    recyclerView.invalidate();
+                    recyclerView.requestLayout();
+
+                    Log.d("MainFragment", "✅ UI UPDATE COMPLETED!");
+                });
             }
+
+
 
             /**
              * This method is called when there is an error fetching the farm data.
@@ -520,7 +558,14 @@ public class MainFragment extends Fragment {
         // Show the dialog.
         dialog.show();
     }
-
+    /**
+     * Shows the live camera feed in a dialog
+     *
+     * WHAT'S FIXED:
+     * - The fullscreen button now properly toggles without crashing
+     * - Better null safety checks
+     * - Clearer variable names
+     */
     private void showLiveCameraDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext(), R.style.CustomDialogTheme);
 
@@ -538,7 +583,11 @@ public class MainFragment extends Fragment {
 
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
-        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        // Make sure dialog window is not null before accessing it
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
 
         // Load camera stream (replace with your camera URL)
         webView.getSettings().setJavaScriptEnabled(true);
@@ -549,26 +598,51 @@ public class MainFragment extends Fragment {
                 statusText.setVisibility(View.VISIBLE);
             }
         });
-        webView.loadUrl("google.com"); // Replace the actual URL
+        webView.loadUrl("https://www.google.com"); // Replace with actual camera URL
 
         // Button click listeners
         btnClose.setOnClickListener(v -> dialog.dismiss());
 
+        // --- FIXED FULLSCREEN BUTTON ---
+        // The crash was caused by trying to cast to ConstraintLayout.LayoutParams
+        // without checking the parent type first
         btnFullscreen.setOnClickListener(v -> {
-            // Toggle fullscreen
-            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) webView.getLayoutParams();
-            if (params.height == ConstraintLayout.LayoutParams.MATCH_PARENT) {
-                // Exit fullscreen
-                params.height = 0;
-                params.dimensionRatio = "H,4:3";
-                btnFullscreen.setText("Fullscreen");
-            } else {
-                // Enter fullscreen
-                params.height = ConstraintLayout.LayoutParams.MATCH_PARENT;
-                params.dimensionRatio = "";
-                btnFullscreen.setText("Exit");
+            try {
+                ViewGroup.LayoutParams params = webView.getLayoutParams();
+
+                // Check if the parent is actually a ConstraintLayout
+                if (params instanceof ConstraintLayout.LayoutParams) {
+                    ConstraintLayout.LayoutParams constraintParams = (ConstraintLayout.LayoutParams) params;
+
+                    // Toggle between fullscreen and normal size
+                    if (constraintParams.height == ConstraintLayout.LayoutParams.MATCH_PARENT) {
+                        // Exit fullscreen - go back to aspect ratio
+                        constraintParams.height = 0;
+                        constraintParams.dimensionRatio = "H,4:3";
+                        btnFullscreen.setText("Fullscreen");
+                        Log.d("LiveCamera", "Exited fullscreen mode");
+                    } else {
+                        // Enter fullscreen - fill the entire height
+                        constraintParams.height = ConstraintLayout.LayoutParams.MATCH_PARENT;
+                        constraintParams.dimensionRatio = null; // Remove aspect ratio constraint
+                        btnFullscreen.setText("Exit Fullscreen");
+                        Log.d("LiveCamera", "Entered fullscreen mode");
+                    }
+
+                    // Apply the changes
+                    webView.setLayoutParams(constraintParams);
+                } else {
+                    // If the parent is not a ConstraintLayout, log an error
+                    Log.e("LiveCamera", "Parent is not ConstraintLayout! It's: " +
+                            params.getClass().getSimpleName());
+                    Toast.makeText(getContext(), "Fullscreen not supported in this layout",
+                            Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception e) {
+                // Catch any other errors and show a user-friendly message
+                Log.e("LiveCamera", "Fullscreen error: " + e.getMessage(), e);
+                Toast.makeText(getContext(), "Error toggling fullscreen", Toast.LENGTH_SHORT).show();
             }
-            webView.setLayoutParams(params);
         });
 
         btnSnapshot.setOnClickListener(v -> {
@@ -580,11 +654,13 @@ public class MainFragment extends Fragment {
             // Record video logic
             if (btnRecord.getText().toString().equals("REC")) {
                 btnRecord.setText("STOP");
-                btnRecord.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.red)));
+                btnRecord.setBackgroundTintList(ColorStateList.valueOf(
+                        ContextCompat.getColor(requireContext(), R.color.red)));
                 Toast.makeText(getContext(), "Recording started", Toast.LENGTH_SHORT).show();
             } else {
                 btnRecord.setText("REC");
-                btnRecord.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green)));
+                btnRecord.setBackgroundTintList(ColorStateList.valueOf(
+                        ContextCompat.getColor(requireContext(), R.color.green)));
                 Toast.makeText(getContext(), "Recording saved", Toast.LENGTH_SHORT).show();
             }
         });
@@ -592,11 +668,13 @@ public class MainFragment extends Fragment {
         dialog.show();
 
         // Make dialog fill most of the screen
-        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
-        layoutParams.copyFrom(dialog.getWindow().getAttributes());
-        layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
-        layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
-        dialog.getWindow().setAttributes(layoutParams);
+        if (dialog.getWindow() != null) {
+            WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+            layoutParams.copyFrom(dialog.getWindow().getAttributes());
+            layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+            layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
+            dialog.getWindow().setAttributes(layoutParams);
+        }
     }
 
 
@@ -972,6 +1050,140 @@ public class MainFragment extends Fragment {
             }
         });
     }
+
+
+    /**
+     * onResume() - Called when the fragment becomes visible to the user
+     *
+     * WHAT HAPPENS HERE:
+     * 1. We register (activate) the BroadcastReceiver to listen for updates
+     * 2. We start the FarmMonitoringService for background monitoring
+     * 3. We reload the vegetation profiles to ensure we have the latest data
+     */
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+
+        startPeriodicRefresh(); // start the 2-minute timer
+
+        Log.d("MainFragment", "onResume – registering receiver");
+        Log.d("MainFragment", "🟢 Fragment resumed - Setting up monitoring");
+
+        // Register BroadcastReceiver with API level check
+        IntentFilter filter = new IntentFilter(FarmMonitoringService.ACTION_DATA_UPDATED);
+        // FIXED: Different registration based on Android version
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
+            requireActivity().registerReceiver(dataUpdateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            // For older Android versions, use the simpler method
+            requireActivity().registerReceiver(dataUpdateReceiver, filter);
+        }
+        Log.d("MainFragment", "✅ BroadcastReceiver registered");
+
+        // Start monitoring service
+        Intent serviceIntent = new Intent(requireContext(), FarmMonitoringService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            requireContext().startForegroundService(serviceIntent);
+        } else {
+            requireContext().startService(serviceIntent);
+        }
+        Log.d("MainFragment", "✅ Monitoring service started");
+
+        loadFarmData();   // <-- add this line
+        loadActiveVegetationProfile();
+    }
+
+
+    /**
+     * onPause() - Called when the fragment is no longer visible
+     *
+     * WHAT HAPPENS HERE:
+     * We unregister (deactivate) the BroadcastReceiver to prevent memory leaks
+     *
+     * IMPORTANT: We do NOT stop the service here! The service keeps running
+     * in the background even when the user switches apps. This is intentional!
+     */
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        stopPeriodicRefresh(); // stop the timer when fragment is not visible
+
+        Log.d("MainFragment", "onPause – unregistering receiver");
+        Log.d("MainFragment", "🟡 Fragment paused - Unregistering receiver");
+
+        // Unregister the BroadcastReceiver
+        // This is CRITICAL to avoid memory leaks!
+        try {
+            requireActivity().unregisterReceiver(dataUpdateReceiver);
+            Log.d("MainFragment", "✅ BroadcastReceiver unregistered");
+        } catch (IllegalArgumentException e) {
+            // This can happen if the receiver was never registered
+            // It's safe to ignore
+            Log.w("MainFragment", "Receiver was not registered");
+        }
+
+        // Note: The service continues running in the background!
+        // This allows monitoring to continue even when the user isn't looking at the app
+    }
+    /**
+     * Stops the background monitoring service
+     *
+     * You might want to call this method when:
+     * - User logs out
+     * - User disables monitoring in settings
+     * - App is being closed
+     *
+     * For now, you can add a button to call this if you want to manually stop monitoring.
+     */
+    public void stopMonitoringService() {
+        Intent serviceIntent = new Intent(requireContext(), FarmMonitoringService.class);
+        requireContext().stopService(serviceIntent);
+        Log.d("MainFragment", "🛑 Monitoring service stopped");
+        Toast.makeText(getContext(), "Background monitoring stopped", Toast.LENGTH_SHORT).show();
+    }
+
+    private void startPeriodicRefresh() {
+        // Cancel any existing timer (safety)
+        if (refreshTimer != null) {
+            refreshTimer.cancel();
+            refreshTimer = null;
+        }
+
+        // Create a new Timer
+        refreshTimer = new Timer();
+
+        // Define the task
+        refreshTask = new TimerTask() {
+            @Override
+            public void run() {
+                // TimerTask runs on a background thread – we must switch to UI thread
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            // This will run on the main thread and update the UI
+                            loadFarmData();
+                        }
+                    });
+                }
+            }
+        };
+
+        // Schedule the task: start immediately, then repeat every FarmTimer miliSecs (120,000 ms)
+        refreshTimer.schedule(refreshTask, 0, FarmTimer);    }
+
+    private void stopPeriodicRefresh() {
+        if (refreshTimer != null) {
+            refreshTimer.cancel(); // cancels the timer and all scheduled tasks
+            refreshTimer = null;
+            refreshTask = null;    // help garbage collection
+        }
+    }
+
+
 
 
 }
