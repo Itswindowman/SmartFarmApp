@@ -114,7 +114,7 @@ public class MainFragment extends Fragment {
     private Vegetation selectedVegetation = null; // The vegetation profile currently selected in the dialog.
     private boolean isEditMode = false; // A flag to determine if the dialog is in "add" or "edit" mode.
 
-    private int FarmTimer = 1000; // Milisecs
+    private int FarmTimer = 10000; // Milisecs
     private Timer refreshTimer;
     private TimerTask refreshTask;
 

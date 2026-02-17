@@ -63,7 +63,7 @@ public class FarmMonitoringService extends Service {
      * - 5 minutes = 300,000
      * - 10 minutes = 600,000
      */
-    private static final long REFRESH_INTERVAL_MS = 1000; // 2 minutes
+    private static final long REFRESH_INTERVAL_MS =10000; // 2 minutes
 
     /**
      * Notification channel IDs - these are required by Android for notifications
