@@ -598,7 +598,7 @@ public class MainFragment extends Fragment {
                 statusText.setVisibility(View.VISIBLE);
             }
         });
-        webView.loadUrl("https://www.google.com"); // Replace with actual camera URL
+        webView.loadUrl("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrOunpvF6cRJnnrnfpFksyRMhWcQyJfivzAQ&s"); // Replace with actual camera URL
 
         // Button click listeners
         btnClose.setOnClickListener(v -> dialog.dismiss());
@@ -729,15 +729,15 @@ public class MainFragment extends Fragment {
     }
 
     /**
-     * Sends a notification to the user's device.
+     * Sends a notification to the user's device. when the farm sensors are out of range for the vegetation
      * @param details The details of the out-of-range values.
      * @param activeProfile The active vegetation profile.
      */
     private void sendOutOfRangeNotification(String details, Vegetation activeProfile) {
-        int icon = R.drawable.ic_launcher_foreground;
+        int icon = R.drawable.ic_launcher_foreground; // the app icon
 
         Notification.Builder builder;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { //
             builder = new Notification.Builder(requireContext(), CHANNEL_ID);
         } else {
             builder = new Notification.Builder(requireContext());
@@ -1060,7 +1060,6 @@ public class MainFragment extends Fragment {
      * 2. We start the FarmMonitoringService for background monitoring
      * 3. We reload the vegetation profiles to ensure we have the latest data
      */
-
     @Override
     public void onResume() {
         super.onResume();
@@ -1074,11 +1073,11 @@ public class MainFragment extends Fragment {
         // Register BroadcastReceiver with API level check
         IntentFilter filter = new IntentFilter(FarmMonitoringService.ACTION_DATA_UPDATED);
         // FIXED: Different registration based on Android version
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+ (Tiramisu)
             requireActivity().registerReceiver(dataUpdateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
         } else {
             // For older Android versions, use the simpler method
-            requireActivity().registerReceiver(dataUpdateReceiver, filter);
+            requireActivity().registerReceiver(dataUpdateReceiver, filter); // Doesn't really matter because the API is 33+
         }
         Log.d("MainFragment", "✅ BroadcastReceiver registered");
 
