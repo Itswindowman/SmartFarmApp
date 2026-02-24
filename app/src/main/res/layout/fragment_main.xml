@@ -22,11 +22,11 @@
 
     <!-- History Button -->
     <Button
-        android:id="@+id/btnHistory"
+        android:id="@+id/btnGallery"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="View History"
+        android:text="View Gallery"
         android:drawableStart="@android:drawable/ic_menu_recent_history"
         android:drawablePadding="8dp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -45,7 +45,7 @@
         android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnHistory">
+        app:layout_constraintTop_toBottomOf="@+id/btnGallery">
 
         <TextView
             android:id="@+id/tvReminderLabel"
@@ -86,26 +86,17 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <!-- Camera Button -->
-    <Button
-        android:id="@+id/CameraBtn"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="16dp"
-        android:background="@android:drawable/ic_lock_idle_alarm"
-        android:contentDescription="Save to History"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/LiveCameraBtn"
         android:layout_width="72dp"
         android:layout_height="57dp"
-        android:layout_marginBottom="32dp"
+        android:layout_marginBottom="12dp"
         android:background="@android:drawable/ic_menu_camera"
         android:text=""
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/fabAdd"
-        app:layout_constraintStart_toEndOf="@+id/CameraBtn" />
+        app:layout_constraintHorizontal_bias="0.064"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

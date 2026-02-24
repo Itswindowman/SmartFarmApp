@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- res/layout/dialog_fullscreen_video.xml -->
+<!-- WebView that plays a video via an HTML5 <video> tag -->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/black">
+
+    <WebView
+        android:id="@+id/wvVideo"
+        android:layout_width="match_parent"
+        android:layout_height="250dp"/>
+
+</FrameLayout>
