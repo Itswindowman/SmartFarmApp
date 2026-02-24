@@ -30,6 +30,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
@@ -46,6 +47,7 @@ import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -68,6 +70,74 @@ import android.content.BroadcastReceiver;
 
 public class MainFragment extends Fragment {
 
+    // ... (rest of the file is unchanged)
+
+    private ImageButton btnLogout; // Add this for the logout button
+
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_main, container, false);
+
+        // Logout Button
+        btnLogout = view.findViewById(R.id.btnLogout);
+        btnLogout.setOnClickListener(v -> handleLogout());
+
+        // FAB
+        fabAdd = view.findViewById(R.id.fabAdd);
+        fabAdd.setOnClickListener(v -> showAddFarmDialog());
+
+        // RecyclerView
+        recyclerView = view.findViewById(R.id.recyclerFarm);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerView.setAdapter(adapter);
+
+        // Active vegetation label
+        tvActiveVegetation = view.findViewById(R.id.tvActiveVegetation);
+        Vegetation currentActiveProfile = adapter.getActiveVegetation();
+        if (currentActiveProfile != null) {
+            tvActiveVegetation.setText("Monitoring Profile: " + currentActiveProfile.getName());
+        } else {
+            tvActiveVegetation.setText("No active profile set");
+        }
+
+        // ── CHANGED: History button → Gallery ─────────────────────────────────
+        btnGallery = view.findViewById(R.id.btnGallery);
+        if (btnGallery != null) {
+            btnGallery.setText("Gallery");                        // rename label
+            btnGallery.setOnClickListener(v -> showGalleryDialog()); // new action
+        }
+
+        // LiveCameraBtn – UNCHANGED, still opens the WebView camera stream
+        LiveCameraBtn = view.findViewById(R.id.LiveCameraBtn);
+        LiveCameraBtn.setOnClickListener(v -> showLiveCameraDialog());
+
+        // Daily reminder switch – UNCHANGED
+        setupDailyReminderSwitch(view);
+
+        // Permissions & initial data
+        askForNotificationPermission();
+        loadFarmData();
+        loadActiveVegetationFromDB();   // CHANGED: DB instead of SharedPreferences
+
+        return view;
+    }
+
+    private void handleLogout() {
+        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean("remember_me", false);
+        editor.remove("email");
+        editor.remove("password");
+        editor.apply();
+
+        Toast.makeText(getContext(), "Logged out", Toast.LENGTH_SHORT).show();
+
+        NavHostFragment.findNavController(MainFragment.this)
+                .navigate(R.id.action_mainFragment_to_loginPage);
+    }
+
+    // ... (rest of the file is unchanged)
     // ─────────────────────────────────────────────────────────────────────────
     // PERMISSION LAUNCHER  (unchanged from original)
     // ─────────────────────────────────────────────────────────────────────────
@@ -164,51 +234,6 @@ public class MainFragment extends Fragment {
         galleryRepo        = new FarmGalleryRepo();        // NEW
         userVegetationRepo = new UserVegetationRepo();     // NEW
         createNotificationChannel();
-    }
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_main, container, false);
-
-        // FAB
-        fabAdd = view.findViewById(R.id.fabAdd);
-        fabAdd.setOnClickListener(v -> showAddFarmDialog());
-
-        // RecyclerView
-        recyclerView = view.findViewById(R.id.recyclerFarm);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setAdapter(adapter);
-
-        // Active vegetation label
-        tvActiveVegetation = view.findViewById(R.id.tvActiveVegetation);
-        Vegetation currentActiveProfile = adapter.getActiveVegetation();
-        if (currentActiveProfile != null) {
-            tvActiveVegetation.setText("Monitoring Profile: " + currentActiveProfile.getName());
-        } else {
-            tvActiveVegetation.setText("No active profile set");
-        }
-
-        // ── CHANGED: History button → Gallery ─────────────────────────────────
-        btnGallery = view.findViewById(R.id.btnGallery);
-        if (btnGallery != null) {
-            btnGallery.setText("Gallery");                        // rename label
-            btnGallery.setOnClickListener(v -> showGalleryDialog()); // new action
-        }
-
-        // LiveCameraBtn – UNCHANGED, still opens the WebView camera stream
-        LiveCameraBtn = view.findViewById(R.id.LiveCameraBtn);
-        LiveCameraBtn.setOnClickListener(v -> showLiveCameraDialog());
-
-        // Daily reminder switch – UNCHANGED
-        setupDailyReminderSwitch(view);
-
-        // Permissions & initial data
-        askForNotificationPermission();
-        loadFarmData();
-        loadActiveVegetationFromDB();   // CHANGED: DB instead of SharedPreferences
-
-        return view;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
