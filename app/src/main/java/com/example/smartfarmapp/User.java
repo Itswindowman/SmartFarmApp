@@ -2,30 +2,18 @@ package com.example.smartfarmapp;
 
 public class User {
 
-
-    int id;
-
     String email;
     String password;
-    float latitude;
+    float latitude; // need to remove!!!!
     float longitude;
 
     public User()
     {}
-    public User(int id, String email, String password, float latitude, float longitude) {
-        this.id = id;
+    public User(String email, String password, float latitude, float longitude) {
         this.email = email;
         this.password = password;
         this.latitude = latitude;
         this.longitude = longitude;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public String getEmail() {

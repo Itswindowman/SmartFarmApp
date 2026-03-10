@@ -143,7 +143,6 @@ public class LoginPage extends Fragment {
                     editor.putBoolean(KEY_REMEMBER_ME, true);
                     editor.putString(KEY_EMAIL, email);
                     editor.putString(KEY_PASSWORD, password); // Note: Storing passwords in plain text is insecure.
-                    editor.putInt("user_id", user.getId());
                 } else {
                     // If not checked, clear any previously saved credentials.
                     editor.remove(KEY_EMAIL);
@@ -196,8 +195,12 @@ public class LoginPage extends Fragment {
 
             @Override
             public void onFailure(Exception e) {
-                // On failure, show an error message (e.g., user already exists).
-                Toast.makeText(getContext(), "Sign Up Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                // On failure, show an error message. Check if it's a conflict error.
+                if (e.getMessage() != null && e.getMessage().contains("409")) {
+                    Toast.makeText(getContext(), "Sign Up Failed: User already exists.", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(getContext(), "Sign Up Failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
             }
         });
     }

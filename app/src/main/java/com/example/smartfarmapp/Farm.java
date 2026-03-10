@@ -22,12 +22,7 @@ public class Farm {
     private int id;
     private int UserID; //need implementation
 
-    public Farm(int temp, int groundHumid, int airHumid, String dateTime) {
-        this.temp = temp;
-        this.groundHumid = groundHumid;
-        this.airHumid = airHumid;
-        this.dateTime = dateTime;
-    }
+
 
     private int temp;
     private int groundHumid;

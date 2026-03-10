@@ -46,6 +46,11 @@ public class UserRepo extends BaseRepo {
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 // Handle network errors.
                 mainHandler.post(() -> callback.onFailure(e));
+                /**
+                 *  // this Lamda Expression -> creates a anon Runnable
+                 *  Class with the void Run() method running callback.onFailure(e)
+                 *  this is the same for all the other OnSomethings
+                 */
             }
 
             @Override
@@ -87,7 +92,8 @@ public class UserRepo extends BaseRepo {
      */
     public void addUser(User user, AddUserCallback callback) {
         // Convert the user object to a JSON string.
-        String jsonBody = gson.toJson(user);
+        String jsonBody = gson.toJson(user); // this creates the User object into a JSON string
+
         // Create the request body.
         RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json; charset=utf-8"));
 

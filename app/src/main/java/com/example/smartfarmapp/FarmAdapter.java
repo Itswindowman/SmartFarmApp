@@ -60,6 +60,14 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
         return this.activeVegetation;
     }
 
+    public void clearData() {
+        if (farmList != null) {
+            farmList.clear();
+        }
+        activeVegetation = null;
+        notifyDataSetChanged();
+    }
+
     /**
      * --- 1. ON-CREATE-VIEW-HOLDER ---
      * This method is called by the RecyclerView only when it needs a brand new row layout to display.
@@ -226,7 +234,7 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
     /**
      * --- THE VIEW HOLDER ---
      * A ViewHolder's job is to hold onto the references to the Views that make up a single row (e.g., the TextViews).
-     * The RecyclerView creates a few of these and then recycles them, passing them to onBindViewHolder.
+     * The RecyclerView creates a few of these and then, and then recycles them, passing them to onBindViewHolder.
      * This is highly efficient because it completely avoids calling `findViewById()` repeatedly while scrolling, which is slow.
      */
     static class FarmViewHolder extends RecyclerView.ViewHolder {

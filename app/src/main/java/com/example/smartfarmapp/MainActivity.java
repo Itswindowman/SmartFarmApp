@@ -1,7 +1,13 @@
 package com.example.smartfarmapp;
 
+import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.os.Bundle;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -18,6 +24,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String PREFS_NAME = "SmartFarmPrefs";
     private static final String KEY_REMEMBER_ME = "remember_me";
+
+    private ConnectivityManager connectivityManager;
+    private ConnectivityManager.NetworkCallback networkCallback;
 
     /**
      * --- ON-CREATE ---
@@ -36,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
         // In this case, `activity_main.xml` contains the `NavHostFragment` which controls all your other fragments.
         setContentView(R.layout.activity_main);
 
+        setupConstantMonitoring();
+
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);
 
@@ -48,6 +59,41 @@ public class MainActivity extends AppCompatActivity {
                 // If "Remember Me" is true, navigate to the main fragment.
                 navController.navigate(R.id.action_loginPage_to_mainFragment);
             }
+        }
+    }
+
+    private void setupConstantMonitoring() {
+        connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                // רץ כשהאינטרנט חוזר
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "החיבור חזר!", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onLost(Network network) {
+                // רץ כשהאינטרנט אובד
+                runOnUiThread(() -> {
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("שים לב")
+                            .setMessage("החיבור לאינטרנט אבד.")
+                            .setPositiveButton("סגור", null)
+                            .show();
+                });
+            }
+        };
+
+        // רישום המאזין
+        connectivityManager.registerDefaultNetworkCallback(networkCallback);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (connectivityManager != null && networkCallback != null) {
+            connectivityManager.unregisterNetworkCallback(networkCallback);
         }
     }
 }

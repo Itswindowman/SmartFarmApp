@@ -13,6 +13,8 @@ import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -70,8 +72,10 @@ import android.content.BroadcastReceiver;
 
 public class MainFragment extends Fragment {
 
-    // ... (rest of the file is unchanged)
-
+    // Add these fields with the other member variables
+    private ConnectivityManager connectivityManager;
+    private ConnectivityManager.NetworkCallback networkCallback;
+    private AlertDialog noNetworkDialog;          // reference to the currently shown dialog
     private ImageButton btnLogout; // Add this for the logout button
 
     @Override
@@ -85,7 +89,13 @@ public class MainFragment extends Fragment {
 
         // FAB
         fabAdd = view.findViewById(R.id.fabAdd);
-        fabAdd.setOnClickListener(v -> showAddFarmDialog());
+        fabAdd.setOnClickListener(v -> {
+            if (NetworkUtil.isInternetAvailable(requireContext())) {
+                showAddFarmDialog();
+            } else {
+                Toast.makeText(getContext(), "No internet connection. Cannot add farm.", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         // RecyclerView
         recyclerView = view.findViewById(R.id.recyclerFarm);
@@ -105,12 +115,24 @@ public class MainFragment extends Fragment {
         btnGallery = view.findViewById(R.id.btnGallery);
         if (btnGallery != null) {
             btnGallery.setText("Gallery");                        // rename label
-            btnGallery.setOnClickListener(v -> showGalleryDialog()); // new action
+            btnGallery.setOnClickListener(v -> {
+                if (NetworkUtil.isInternetAvailable(requireContext())) {
+                    showGalleryDialog();
+                } else {
+                    Toast.makeText(getContext(), "No internet connection. Cannot open gallery.", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
 
         // LiveCameraBtn – UNCHANGED, still opens the WebView camera stream
         LiveCameraBtn = view.findViewById(R.id.LiveCameraBtn);
-        LiveCameraBtn.setOnClickListener(v -> showLiveCameraDialog());
+        LiveCameraBtn.setOnClickListener(v -> {
+            if (NetworkUtil.isInternetAvailable(requireContext())) {
+                showLiveCameraDialog();
+            } else {
+                Toast.makeText(getContext(), "No internet connection. Camera stream unavailable.", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         // Daily reminder switch – UNCHANGED
         setupDailyReminderSwitch(view);
@@ -129,7 +151,12 @@ public class MainFragment extends Fragment {
         editor.putBoolean("remember_me", false);
         editor.remove("email");
         editor.remove("password");
+        editor.remove("user_id");
         editor.apply();
+
+        if (adapter != null) {
+            adapter.clearData();
+        }
 
         Toast.makeText(getContext(), "Logged out", Toast.LENGTH_SHORT).show();
 
@@ -244,6 +271,9 @@ public class MainFragment extends Fragment {
     public void onResume() {
         super.onResume();
 
+        // Start network monitoring (shows dialog when offline)
+        setupNetworkMonitoring();
+
         startPeriodicRefresh();
 
         Log.d("MainFragment", "onResume – registering receiver");
@@ -266,7 +296,7 @@ public class MainFragment extends Fragment {
         Log.d("MainFragment", "✅ Monitoring service started");
 
         loadFarmData();
-        loadActiveVegetationFromDB();   // CHANGED
+        loadActiveVegetationFromDB();
     }
 
     @Override
@@ -284,6 +314,17 @@ public class MainFragment extends Fragment {
         } catch (IllegalArgumentException e) {
             Log.w("MainFragment", "Receiver was not registered");
         }
+
+        // Unregister network callback to prevent leaks
+        if (connectivityManager != null && networkCallback != null) {
+            connectivityManager.unregisterNetworkCallback(networkCallback);
+        }
+
+        // Dismiss any open dialog
+        if (noNetworkDialog != null && noNetworkDialog.isShowing()) {
+            noNetworkDialog.dismiss();
+            noNetworkDialog = null;
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -296,6 +337,12 @@ public class MainFragment extends Fragment {
      * Falls back to SharedPreferences on failure.
      */
     private void loadActiveVegetationFromDB() {
+        if (!NetworkUtil.isInternetAvailable(requireContext())) {
+            Log.d("MainFragment", "loadActiveVegetationFromDB: Skipping, no internet.");
+            loadActiveVegetationFallback();
+            return;
+        }
+
         SharedPreferences prefs = requireActivity()
                 .getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
         int userId = prefs.getInt("user_id", -1);
@@ -333,7 +380,7 @@ public class MainFragment extends Fragment {
                 });
     }
 
-    /** Fallback: read from SharedPreferences (old behaviour). */
+    /** Fallback: read from SharedPreferences (old behavior). */
     private void loadActiveVegetationFallback() {
         SharedPreferences prefs = requireActivity()
                 .getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
@@ -404,6 +451,10 @@ public class MainFragment extends Fragment {
 
         // ── Photo picker button ───────────────────────────────────────────────
         btnPickPhoto.setOnClickListener(v -> {
+            if (!NetworkUtil.isInternetAvailable(requireContext())) {
+                tvUploadStatus.setText("❌ No internet connection.");
+                return;
+            }
             tvUploadStatus.setText("Select a photo from your gallery…");
             pendingUploadCallback = new FarmGalleryRepo.UploadCallback() {
                 @Override public void onSuccess(String url) {
@@ -423,6 +474,10 @@ public class MainFragment extends Fragment {
 
         // ── Video picker button ───────────────────────────────────────────────
         btnPickVideo.setOnClickListener(v -> {
+            if (!NetworkUtil.isInternetAvailable(requireContext())) {
+                tvUploadStatus.setText("❌ No internet connection.");
+                return;
+            }
             tvUploadStatus.setText("Select a video from your gallery…");
             pendingUploadCallback = new FarmGalleryRepo.UploadCallback() {
                 @Override public void onSuccess(String url) {
@@ -463,6 +518,11 @@ public class MainFragment extends Fragment {
             return;
         }
 
+        if (!NetworkUtil.isInternetAvailable(requireContext())) {
+            Toast.makeText(getContext(), "No internet connection. Upload aborted.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         Toast.makeText(getContext(), "Uploading… please wait", Toast.LENGTH_SHORT).show();
         galleryRepo.uploadAndSave(requireContext(), fileUri, mimeType, userId, pendingUploadCallback);
         pendingUploadCallback = null; // consumed
@@ -470,6 +530,11 @@ public class MainFragment extends Fragment {
 
     /** Fetches the user's gallery rows from Supabase and refreshes the grid. */
     private void loadGalleryItems(int userId, TextView statusView) {
+        if (!NetworkUtil.isInternetAvailable(requireContext())) {
+            statusView.setText("❌ No internet connection.");
+            return;
+        }
+
         galleryRepo.fetchGalleryForUser(userId, new FarmGalleryRepo.FetchGalleryCallback() {
             @Override public void onSuccess(List<FarmGallery> items) {
                 if (!isAdded()) return;
@@ -660,6 +725,11 @@ public class MainFragment extends Fragment {
     }
 
     private void loadFarmData() {
+        if (!NetworkUtil.isInternetAvailable(requireContext())) {
+            Log.d("MainFragment", "loadFarmData: Skipping periodic load, no internet.");
+            return;
+        }
+
         Log.d("MainFragment", "─────────────────────────────────────────");
         Log.d("MainFragment", "🔄 loadFarmData() STARTED");
 
@@ -786,6 +856,10 @@ public class MainFragment extends Fragment {
 
             btnNeutral.setOnClickListener(v -> {
                 if (selectedVegetation != null) {
+                    if (!NetworkUtil.isInternetAvailable(requireContext())) {
+                        Toast.makeText(getContext(), "No internet connection. Cannot set profile.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     tvActiveVegetation.setText("Monitoring Profile: " + selectedVegetation.getName());
                     adapter.setActiveVegetation(selectedVegetation);
 
@@ -809,6 +883,11 @@ public class MainFragment extends Fragment {
             });
 
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+                if (!NetworkUtil.isInternetAvailable(requireContext())) {
+                    Toast.makeText(getContext(), "No internet connection. Cannot save.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 boolean isNameValid = true;
                 if (!isEditMode) {
                     if (TextUtils.isEmpty(etFarmName.getText().toString())) {
@@ -1000,5 +1079,44 @@ public class MainFragment extends Fragment {
             refreshTimer = null;
             refreshTask  = null;
         }
+    }
+
+    private void setupNetworkMonitoring() {
+        connectivityManager = (ConnectivityManager) requireContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(@NonNull Network network) {
+                // Internet restored – dismiss dialog if showing, optionally notify user
+                requireActivity().runOnUiThread(() -> {
+                    if (noNetworkDialog != null && noNetworkDialog.isShowing()) {
+                        noNetworkDialog.dismiss();
+                        noNetworkDialog = null;
+                    }
+                    // Optional: brief toast to confirm reconnection
+                    // Toast.makeText(getContext(), "Internet connection restored", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onLost(@NonNull Network network) {
+                // Internet lost – show dialog if not already showing
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return; // fragment detached
+
+                    if (noNetworkDialog == null || !noNetworkDialog.isShowing()) {
+                        noNetworkDialog = new AlertDialog.Builder(requireContext())
+                                .setTitle("No Internet Connection")
+                                .setMessage("Please check your Wi‑Fi or mobile data.")
+                                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                                .setCancelable(true)      // allow user to dismiss
+                                .show();
+                    }
+                });
+            }
+        };
+
+        // Register the callback (works from API 21+)
+        connectivityManager.registerDefaultNetworkCallback(networkCallback);
     }
 }
