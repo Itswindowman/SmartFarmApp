@@ -3,36 +3,49 @@ package com.example.smartfarmapp;
 import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
+
 import com.google.gson.reflect.TypeToken;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.UUID;
-import okhttp3.*;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 /**
  * FarmGalleryRepo
  * ─────────────────
- * 1. Uploads a photo or video to Supabase Storage bucket "farm-gallery".
- * 2. Inserts the public URL + UserID into the FarmGallery table.
- * 3. Fetches all FarmGallery rows for a user, newest-first.
+ * Handles the farm photo/video gallery:
+ *   1. uploadAndSave()      – reads file → uploads to Storage bucket → inserts row in table
+ *   2. fetchGalleryForUser() – fetches all FarmGallery rows for a user, newest-first
+ *
+ * GET and POST table operations are delegated to the inherited BaseRepo helpers.
+ * Only the raw Storage upload (binary, not JSON) stays local because it uses a
+ * synchronous execute() call on a background thread and a different content-type.
  *
  * SUPABASE SETUP:
- *   - Create a Storage bucket named exactly:  farm-gallery
- *   - Set the bucket to PUBLIC
- *   - FarmGallery table needs columns: id, UserID, URI, date
+ *   - Storage bucket named exactly: farm-gallery  (set to PUBLIC)
+ *   - FarmGallery table columns:    id, UserID, URI, date
  */
 public class FarmGalleryRepo extends BaseRepo {
 
     private static final String TAG = "FarmGalleryRepo";
 
-    private static final String GALLERY_TABLE_URL  = SUPABASE_URL + "/rest/v1/FarmGallery";
-    private static final String STORAGE_BUCKET     = "farm-gallery";
+    private static final String GALLERY_TABLE_URL   = SUPABASE_URL + "/rest/v1/FarmGallery";
+    private static final String STORAGE_BUCKET      = "farm-gallery";
     private static final String STORAGE_UPLOAD_BASE = SUPABASE_URL + "/storage/v1/object/" + STORAGE_BUCKET + "/";
-    private static final String STORAGE_PUBLIC_BASE  = SUPABASE_URL + "/storage/v1/object/public/" + STORAGE_BUCKET + "/";
+    private static final String STORAGE_PUBLIC_BASE = SUPABASE_URL + "/storage/v1/object/public/" + STORAGE_BUCKET + "/";
 
+    // ── Callback interfaces ───────────────────────────────────────────────────
     public interface UploadCallback {
         void onSuccess(String publicUrl);
         void onFailure(Exception e);
@@ -40,27 +53,37 @@ public class FarmGalleryRepo extends BaseRepo {
     public interface FetchGalleryCallback extends RepoCallBack<List<FarmGallery>> {}
     public interface AddGalleryCallback   extends RepoCallBack<Void> {}
 
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Public API
+    // ═════════════════════════════════════════════════════════════════════════
+
     /**
-     * Full pipeline: read file → upload to Storage → insert URL into table.
+     * Full pipeline: read file → upload binary to Storage → insert public URL into table.
+     * Runs file I/O on a background thread; all callbacks arrive on the main thread.
      */
     public void uploadAndSave(Context context, Uri fileUri, String mimeType,
                               long userId, UploadCallback callback) {
         new Thread(() -> {
             try {
+                // 1. Read file bytes
                 InputStream is = context.getContentResolver().openInputStream(fileUri);
                 if (is == null) {
-                    mainHandler.post(() -> callback.onFailure(new IOException("Cannot open file: " + fileUri)));
+                    mainHandler.post(() -> callback.onFailure(
+                            new IOException("Cannot open file: " + fileUri)));
                     return;
                 }
                 byte[] bytes = is.readAllBytes();
                 is.close();
 
-                String extension  = mimeType.startsWith("video") ? ".mp4" : ".jpg";
+                // 2. Upload binary to Supabase Storage
+                String extension   = mimeType.startsWith("video") ? ".mp4" : ".jpg";
                 String storagePath = UUID.randomUUID().toString() + extension;
 
-                uploadToStorage(bytes, mimeType, storagePath, new UploadCallback() {
-                    @Override public void onSuccess(String publicUrl) {
-                        insertRow(publicUrl, userId, new AddGalleryCallback() {
+                uploadBinaryToStorage(bytes, mimeType, storagePath, new UploadCallback() {
+                    @Override
+                    public void onSuccess(String publicUrl) {
+                        // 3. Insert a row in the FarmGallery table
+                        insertGalleryRow(publicUrl, userId, new AddGalleryCallback() {
                             @Override public void onSuccess(Void r) {
                                 mainHandler.post(() -> callback.onSuccess(publicUrl));
                             }
@@ -69,10 +92,12 @@ public class FarmGalleryRepo extends BaseRepo {
                             }
                         });
                     }
-                    @Override public void onFailure(Exception e) {
+                    @Override
+                    public void onFailure(Exception e) {
                         mainHandler.post(() -> callback.onFailure(e));
                     }
                 });
+
             } catch (Exception e) {
                 Log.e(TAG, "uploadAndSave error", e);
                 mainHandler.post(() -> callback.onFailure(e));
@@ -80,45 +105,44 @@ public class FarmGalleryRepo extends BaseRepo {
         }).start();
     }
 
-    /** Fetches all FarmGallery rows for a user, newest first. */
+    /**
+     * Fetches all FarmGallery rows for a user, newest first.
+     */
     public void fetchGalleryForUser(long userId, FetchGalleryCallback callback) {
         String url = GALLERY_TABLE_URL + "?UserID=eq." + userId + "&order=date.desc";
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("apikey", SUPABASE_KEY)
-                .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
-                .addHeader("Accept", "application/json")
-                .build();
-        httpClient.newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(TAG, "fetchGallery failed", e);
-                mainHandler.post(() -> callback.onFailure(e));
+
+        executeGet(TAG, url, new RawCallback() {
+            @Override
+            public void onSuccess(String json) {
+                Log.d(TAG, "Gallery JSON: " + json);
+                Type listType = new TypeToken<List<FarmGallery>>() {}.getType();
+                List<FarmGallery> items = gson.fromJson(json, listType);
+                callback.onSuccess(items);
             }
-            @Override public void onResponse(@NonNull Call call, @NonNull Response response) {
-                try (ResponseBody body = response.body()) {
-                    if (!response.isSuccessful() || body == null) {
-                        mainHandler.post(() -> callback.onFailure(new IOException("HTTP " + response.code())));
-                        return;
-                    }
-                    String json = body.string();
-                    Log.d(TAG, "Gallery JSON: " + json);
-                    Type listType = new TypeToken<List<FarmGallery>>() {}.getType();
-                    List<FarmGallery> items = gson.fromJson(json, listType);
-                    mainHandler.post(() -> callback.onSuccess(items));
-                } catch (Exception e) {
-                    Log.e(TAG, "Gallery parse error", e);
-                    mainHandler.post(() -> callback.onFailure(e));
-                }
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "fetchGalleryForUser failed", e);
+                callback.onFailure(e);
             }
         });
     }
 
-    // Synchronous – already on background thread from uploadAndSave()
-    private void uploadToStorage(byte[] bytes, String mimeType, String path, UploadCallback callback) {
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Private helpers
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Uploads raw bytes to the Supabase Storage bucket.
+     * This is NOT JSON, so we cannot use the inherited executePost() helper.
+     * Runs synchronously – must be called from a background thread.
+     */
+    private void uploadBinaryToStorage(byte[] bytes, String mimeType,
+                                       String path, UploadCallback callback) {
         String uploadUrl = STORAGE_UPLOAD_BASE + path;
-        Log.d(TAG, "Uploading to: " + uploadUrl);
-        RequestBody body = RequestBody.create(bytes, MediaType.parse(mimeType));
-        Request request = new Request.Builder()
+        Log.d(TAG, "Uploading binary to: " + uploadUrl);
+
+        RequestBody body    = RequestBody.create(bytes, MediaType.parse(mimeType));
+        Request     request = new Request.Builder()
                 .url(uploadUrl)
                 .addHeader("apikey", SUPABASE_KEY)
                 .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
@@ -126,8 +150,9 @@ public class FarmGalleryRepo extends BaseRepo {
                 .addHeader("x-upsert", "true")
                 .post(body)
                 .build();
+
         try {
-            Response response = httpClient.newCall(request).execute();
+            Response response = httpClient.newCall(request).execute();   // synchronous
             if (response.isSuccessful()) {
                 String publicUrl = STORAGE_PUBLIC_BASE + path;
                 Log.d(TAG, "Upload OK. URL: " + publicUrl);
@@ -144,37 +169,14 @@ public class FarmGalleryRepo extends BaseRepo {
         }
     }
 
-    private void insertRow(String publicUrl, long userId, AddGalleryCallback callback) {
-        FarmGallery item = new FarmGallery(userId, publicUrl);
-        String jsonBody  = gson.toJson(item);
-        Log.d(TAG, "Inserting row: " + jsonBody);
-        RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json; charset=utf-8"));
-        Request request = new Request.Builder()
-                .url(GALLERY_TABLE_URL)
-                .addHeader("apikey", SUPABASE_KEY)
-                .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Prefer", "return=minimal")
-                .post(body)
-                .build();
-        httpClient.newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(TAG, "insertRow failed", e);
-                mainHandler.post(() -> callback.onFailure(e));
-            }
-            @Override public void onResponse(@NonNull Call call, @NonNull Response response) {
-                if (response.isSuccessful()) {
-                    Log.d(TAG, "insertRow OK");
-                    mainHandler.post(() -> callback.onSuccess(null));
-                } else {
-                    String err = "";
-                    try { if (response.body() != null) err = response.body().string(); } catch (IOException ignored) {}
-                    Log.e(TAG, "insertRow HTTP " + response.code() + ": " + err);
-                    final String fe = err;
-                    mainHandler.post(() -> callback.onFailure(new IOException("HTTP " + response.code() + ": " + fe)));
-                }
-                response.close();
-            }
-        });
+    /**
+     * Inserts a FarmGallery row via the inherited executePost() helper.
+     */
+    private void insertGalleryRow(String publicUrl, long userId, AddGalleryCallback callback) {
+        FarmGallery item   = new FarmGallery(userId, publicUrl);
+        String      json   = gson.toJson(item);
+        Log.d(TAG, "Inserting gallery row: " + json);
+        // preferMinimal = true → we only need a 201 confirmation
+        executePost(TAG, GALLERY_TABLE_URL, json, true, callback);
     }
 }
