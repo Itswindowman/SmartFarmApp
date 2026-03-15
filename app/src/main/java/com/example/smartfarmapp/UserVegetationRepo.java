@@ -24,10 +24,17 @@ public class UserVegetationRepo extends BaseRepo {
 
     // ── Inner model ───────────────────────────────────────────────────────────
     /** Minimal model – only the columns we need from UserVegetation. */
+    /**
+     * Mirrors the UserVegetation table exactly.
+     *
+     * BUG FIX: The schema primary key is "UserVegID", NOT "UserVegetationID".
+     * Gson matches field names to JSON keys, so the wrong name meant this
+     * field was always null and the row was silently dropped.
+     */
     public static class UserVegetationRow {
-        public Long UserVegetationID;
-        public Long UserID;
-        public Long VegetationID;
+        public Long   UserVegID;      // ← fixed: was "UserVegetationID"
+        public Long   UserID;
+        public Long   VegetationID;
         public String date;
     }
 
