@@ -72,7 +72,6 @@ import android.content.BroadcastReceiver;
 
 public class MainFragment extends Fragment {
 
-    // Add these fields with the other member variables
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
     private AlertDialog noNetworkDialog;          // reference to the currently shown dialog
@@ -111,7 +110,7 @@ public class MainFragment extends Fragment {
             tvActiveVegetation.setText("No active profile set");
         }
 
-        // ── CHANGED: History button → Gallery ─────────────────────────────────
+        // ── Gallery ─────────────────────────────────
         btnGallery = view.findViewById(R.id.btnGallery);
         if (btnGallery != null) {
             btnGallery.setText("Gallery");                        // rename label
@@ -148,11 +147,16 @@ public class MainFragment extends Fragment {
     private void handleLogout() {
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        // Removes the data from the Shared Prefs (empty the file)
         editor.putBoolean("remember_me", false);
         editor.remove("email");
         editor.remove("password");
         editor.remove("user_id");
+
+        // apply changes
         editor.apply();
+
 
         if (adapter != null) {
             adapter.clearData();
@@ -164,9 +168,9 @@ public class MainFragment extends Fragment {
                 .navigate(R.id.action_mainFragment_to_loginPage);
     }
 
-    // ... (rest of the file is unchanged)
+
     // ─────────────────────────────────────────────────────────────────────────
-    // PERMISSION LAUNCHER  (unchanged from original)
+    // PERMISSION LAUNCHER
     // ─────────────────────────────────────────────────────────────────────────
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
@@ -179,7 +183,7 @@ public class MainFragment extends Fragment {
             });
 
     // ─────────────────────────────────────────────────────────────────────────
-    // MEDIA-PICKER LAUNCHERS  (new – for the Gallery dialog)
+    // MEDIA-PICKER LAUNCHERS
     // Must be registered here (before onStart), NOT inside a method.
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -210,7 +214,7 @@ public class MainFragment extends Fragment {
     };
 
     // ─────────────────────────────────────────────────────────────────────────
-    // ORIGINAL UI REFERENCES
+    // UI REFERENCES
     // ─────────────────────────────────────────────────────────────────────────
 
     private Button               btnGallery;      // renamed to "Gallery" at runtime
@@ -231,24 +235,16 @@ public class MainFragment extends Fragment {
     private Vegetation       selectedVegetation = null;
     private boolean          isEditMode         = false;
 
-    private int       FarmTimer    = 1000;
-    private Timer     refreshTimer;
+    private int FarmTimer = 1000;
+    private Timer refreshTimer;
     private TimerTask refreshTask;
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // NEW FIELDS
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private FarmGalleryRepo    galleryRepo;
+    private FarmGalleryRepo galleryRepo;
     private UserVegetationRepo userVegetationRepo;
 
     /** Live reference to the gallery grid adapter so we can refresh it after an upload */
-    private GalleryAdapter    galleryGridAdapter;
+    private GalleryAdapter galleryGridAdapter;
     private List<FarmGallery> galleryItems = new ArrayList<>();
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // LIFECYCLE
-    // ─────────────────────────────────────────────────────────────────────────
 
     public MainFragment() {}
 
@@ -265,13 +261,14 @@ public class MainFragment extends Fragment {
 
     // ─────────────────────────────────────────────────────────────────────────
     // onResume / onPause  (structure unchanged; vegetation now loaded from DB)
+    // Used for background things
     // ─────────────────────────────────────────────────────────────────────────
 
     @Override
     public void onResume() {
         super.onResume();
 
-        // Start network monitoring (shows dialog when offline)
+        // Start network monitoring (shows dialog when offline to avoid crash)
         setupNetworkMonitoring();
 
         startPeriodicRefresh();
@@ -618,9 +615,9 @@ public class MainFragment extends Fragment {
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View dialogView = inflater.inflate(R.layout.dialog_live_camera, null);
 
-        WebView        webView       = dialogView.findViewById(R.id.webView);
-        View           loadingOverlay = dialogView.findViewById(R.id.loadingOverlay);
-        TextView       statusText    = dialogView.findViewById(R.id.statusText);
+        WebView webView       = dialogView.findViewById(R.id.webView);
+        View loadingOverlay = dialogView.findViewById(R.id.loadingOverlay);
+        TextView statusText    = dialogView.findViewById(R.id.statusText);
         ImageView      btnClose      = dialogView.findViewById(R.id.btnClose);
         MaterialButton btnFullscreen = dialogView.findViewById(R.id.btnFullscreen);
         MaterialButton btnSnapshot   = dialogView.findViewById(R.id.btnSnapshot);
