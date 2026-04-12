@@ -21,7 +21,7 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.Objects;
 
-public class LoginPage extends Fragment {
+public class LoginPage extends Fragment { // did the class for the book
 
     // ── UI ────────────────────────────────────────────────────────────────────
     private TextInputEditText etEmail;
@@ -53,7 +53,7 @@ public class LoginPage extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        userRepo          = new UserRepo();
+        userRepo          = new UserRepo(); // creates userRepo for handle Signin and Signup
         sharedPreferences = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
         etEmail      = view.findViewById(R.id.etEmail);
@@ -79,7 +79,25 @@ public class LoginPage extends Fragment {
         }
     }
 
+    // Precondition:
+// - etEmail and etPassword are not null and contain text (possibly empty)
+// - sharedPreferences is initialized and valid
+// - userRepo is initialized and connected to the database
+// - cbRememberMe is not null
+
+    // Postcondition:
+// Success case:
+//   - KEY_USER_ID is saved in SharedPreferences with the user's ID
+//   - If Remember Me is checked: KEY_EMAIL, KEY_PASSWORD, KEY_REMEMBER_ME=true are saved
+//   - If Remember Me is not checked: KEY_EMAIL, KEY_PASSWORD are deleted, KEY_REMEMBER_ME=false
+//   - The user is navigated to the Main screen (MainFragment)
+// Failure case:
+//   - SharedPreferences are unchanged
+//   - The user stays on the Login screen
+//   - A Toast is shown explaining the reason for failure
     private void handleSignIn() {
+
+
         String email    = Objects.requireNonNull(etEmail.getText()).toString().trim();
         String password = Objects.requireNonNull(etPassword.getText()).toString().trim();
 
@@ -129,6 +147,11 @@ public class LoginPage extends Fragment {
         });
     }
 
+    // Precondition:
+// - etEmail and etPassword are not null and contain text (possibly empty)
+// - userRepo is initialized and connected to the database
+// - The email does not already exist in the database
+
     private void handleSignUp() {
         String email    = Objects.requireNonNull(etEmail.getText()).toString().trim();
         String password = Objects.requireNonNull(etPassword.getText()).toString().trim();
@@ -142,8 +165,6 @@ public class LoginPage extends Fragment {
         User newUser = new User();
         newUser.setEmail(email);
         newUser.setPassword(password);
-        newUser.setLatitude(0.0f);
-        newUser.setLongitude(0.0f);
 
         userRepo.addUser(newUser, new UserRepo.AddUserCallback() {
             @Override
@@ -164,5 +185,17 @@ public class LoginPage extends Fragment {
                 }
             }
         });
+
+// Postcondition:
+// Success case:
+//   - A new User row with the given email and password is inserted in the database
+//   - The password field is cleared on screen
+//   - The user stays on the Login screen and is prompted to Sign In
+// Failure case (409):
+//   - The database is unchanged
+//   - A Toast is shown telling the user that the email is already taken
+// Failure case (other):
+//   - The database is unchanged
+//   - A Toast is shown with the raw error message explaining what went wrong
     }
 }

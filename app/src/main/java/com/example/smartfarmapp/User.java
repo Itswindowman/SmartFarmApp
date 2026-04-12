@@ -7,16 +7,12 @@ public class User {
 
     private String email;
     private String password;
-    private float latitude;
-    private float longitude;
 
     public User() {}
 
-    public User(String email, String password, float latitude, float longitude) {
-        this.email     = email;
-        this.password  = password;
-        this.latitude  = latitude;
-        this.longitude = longitude;
+    public User(String email, String password) {
+        this.email    = email;
+        this.password = password;
     }
 
     // ── id ────────────────────────────────────────────────────────────────────
@@ -31,10 +27,4 @@ public class User {
     public String getPassword()                { return password; }
     public void   setPassword(String password) { this.password = password; }
 
-    // ── location ──────────────────────────────────────────────────────────────
-    public float getLatitude()               { return latitude; }
-    public void  setLatitude(float latitude) { this.latitude = latitude; }
-
-    public float getLongitude()                { return longitude; }
-    public void  setLongitude(float longitude) { this.longitude = longitude; }
 }
