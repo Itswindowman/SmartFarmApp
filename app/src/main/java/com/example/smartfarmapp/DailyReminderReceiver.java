@@ -1,106 +1,58 @@
 package com.example.smartfarmapp;
 
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.widget.Toast;
+import android.util.Log;
 
-public class DailyReminderReceiver {
+import androidx.core.app.NotificationCompat;
 
-    private static final String PREFS_NAME = "SmartFarmAlarmPrefs";
-    private static final String KEY_ALARM_ENABLED = "daily_reminder_enabled";
+public class DailyReminderReceiver extends BroadcastReceiver {
 
-    /**
-     * Enable or disable daily reminder
-     */
-    public static void setDailyReminder(Context context, boolean enable) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
+    private static final String TAG = "DailyReminderReceiver";
+    private static final int NOTIFICATION_ID = 1001;
 
-        if (enable) {
-            // Set alarm for 7 PM daily
-            boolean success = scheduleDailyAlarm(context);
-            if (success) {
-                editor.putBoolean(KEY_ALARM_ENABLED, true);
-                editor.apply();
-                Toast.makeText(context, "Daily reminder enabled! (7 PM daily)", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(context, "Failed to enable reminder", Toast.LENGTH_SHORT).show();
-            }
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        // Only proceed if the daily reminder is actually enabled in SharedPreferences
+        if (!SimpleAlarmManager.isDailyReminderEnabled(context)) {
+            Log.d(TAG, "Reminder triggered but it's disabled in settings. Cancelling future alarms.");
+            SimpleAlarmManager.cancelDailyAlarm(context);
+            return;
+        }
+
+        if (intent.getAction() != null && intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
+            // Re-schedule alarm on boot because it's enabled
+            SimpleAlarmManager.scheduleDailyAlarm(context);
+            Log.d(TAG, "Alarm re-scheduled after boot");
         } else {
-            // Cancel alarm
-            cancelDailyAlarm(context);
-            editor.putBoolean(KEY_ALARM_ENABLED, false);
-            editor.apply();
-            Toast.makeText(context, "Daily reminder disabled", Toast.LENGTH_SHORT).show();
+            // This is the actual alarm trigger - show notification
+            showNotification(context);
+            
+            // Re-schedule for the next day (since we use setExactAndAllowWhileIdle which is a one-shot)
+            SimpleAlarmManager.scheduleDailyAlarm(context);
         }
     }
 
-    /**
-     * Check if daily reminder is enabled
-     */
-    public static boolean isDailyReminderEnabled(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        return prefs.getBoolean(KEY_ALARM_ENABLED, false);
-    }
+    private void showNotification(Context context) {
+        Intent mainIntent = new Intent(context, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, 0, mainIntent, PendingIntent.FLAG_IMMUTABLE);
 
-    /**
-     * Schedule the daily alarm for 7 PM
-     */
-    private static boolean scheduleDailyAlarm(Context context) {
-        try {
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            if (alarmManager == null) return false;
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, FarmMonitoringService.CHANNEL_ID_ALERTS)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("🌱 Morning Farm Check")
+                .setContentText("Time to check your crop conditions!")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
 
-            Intent intent = new Intent(context, DailyReminderReceiver.class);
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-            // Calculate time for 7 PM
-            java.util.Calendar calendar = java.util.Calendar.getInstance();
-            calendar.set(java.util.Calendar.HOUR_OF_DAY, 19); // 7 PM
-            calendar.set(java.util.Calendar.MINUTE, 0);
-            calendar.set(java.util.Calendar.SECOND, 0);
-
-            // If it's already past 7 PM, set for tomorrow
-            if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
-                calendar.add(java.util.Calendar.DAY_OF_YEAR, 1);
-            }
-
-            // Set inexact repeating alarm (no permission needed)
-            alarmManager.setInexactRepeating(
-                    AlarmManager.RTC_WAKEUP,
-                    calendar.getTimeInMillis(),
-                    AlarmManager.INTERVAL_DAY,
-                    pendingIntent
-            );
-
-            return true;
-
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /**
-     * Cancel the daily alarm
-     */
-    private static void cancelDailyAlarm(Context context) {
-        try {
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            if (alarmManager == null) return;
-
-            Intent intent = new Intent(context, DailyReminderReceiver.class);
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-            alarmManager.cancel(pendingIntent);
-            pendingIntent.cancel();
-
-        } catch (Exception e) {
-            // Ignore errors
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (notificationManager != null) {
+            notificationManager.notify(NOTIFICATION_ID, builder.build());
         }
     }
 }

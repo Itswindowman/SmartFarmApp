@@ -5,10 +5,14 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.util.Log;
 import android.widget.Toast;
+
+import java.util.Calendar;
 
 public class SimpleAlarmManager {
 
+    private static final String TAG = "SimpleAlarmManager";
     private static final String PREFS_NAME = "SmartFarmAlarmPrefs";
     private static final String KEY_ALARM_ENABLED = "daily_reminder_enabled";
 
@@ -20,17 +24,15 @@ public class SimpleAlarmManager {
         SharedPreferences.Editor editor = prefs.edit();
 
         if (enable) {
-            // Set alarm for 7 PM daily
             boolean success = scheduleDailyAlarm(context);
             if (success) {
                 editor.putBoolean(KEY_ALARM_ENABLED, true);
                 editor.apply();
-                Toast.makeText(context, "Daily reminder enabled! (7 PM daily)", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Daily reminder enabled! (8:00 AM daily)", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(context, "Failed to enable reminder", Toast.LENGTH_SHORT).show();
             }
         } else {
-            // Cancel alarm
             cancelDailyAlarm(context);
             editor.putBoolean(KEY_ALARM_ENABLED, false);
             editor.apply();
@@ -47,9 +49,9 @@ public class SimpleAlarmManager {
     }
 
     /**
-     * Schedule the daily alarm for 7 PM
+     * Schedule the daily alarm for 8:00 AM
      */
-    private static boolean scheduleDailyAlarm(Context context) {
+    public static boolean scheduleDailyAlarm(Context context) {
         try {
             AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             if (alarmManager == null) return false;
@@ -58,28 +60,28 @@ public class SimpleAlarmManager {
             PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-            // Calculate time for 7 PM
-            java.util.Calendar calendar = java.util.Calendar.getInstance();
-            calendar.set(java.util.Calendar.HOUR_OF_DAY, 19); // 7 PM
-            calendar.set(java.util.Calendar.MINUTE, 0);
-            calendar.set(java.util.Calendar.SECOND, 0);
+            // Calculate time for 8:00 AM
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.HOUR_OF_DAY, 8); // 8
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
 
-            // If it's already past 7 PM, set for tomorrow
+            // If it's already past 8:00 AM, set for tomorrow
             if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
-                calendar.add(java.util.Calendar.DAY_OF_YEAR, 1);
+                calendar.add(Calendar.DAY_OF_YEAR, 1);
             }
 
-            // Set inexact repeating alarm (no permission needed)
-            alarmManager.setInexactRepeating(
+            // Use setExactAndAllowWhileIdle for modern Android
+            alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     calendar.getTimeInMillis(),
-                    AlarmManager.INTERVAL_DAY,
                     pendingIntent
             );
 
             return true;
-
         } catch (Exception e) {
+            Log.e(TAG, "Error scheduling alarm", e);
             return false;
         }
     }
@@ -87,7 +89,7 @@ public class SimpleAlarmManager {
     /**
      * Cancel the daily alarm
      */
-    private static void cancelDailyAlarm(Context context) {
+    public static void cancelDailyAlarm(Context context) {
         try {
             AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             if (alarmManager == null) return;
@@ -98,9 +100,8 @@ public class SimpleAlarmManager {
 
             alarmManager.cancel(pendingIntent);
             pendingIntent.cancel();
-
         } catch (Exception e) {
-            // Ignore errors
+            Log.e(TAG, "Error cancelling alarm", e);
         }
     }
 }

@@ -63,19 +63,22 @@ public class FarmMonitoringService extends Service {
      * - 5 minutes = 300,000
      * - 10 minutes = 600,000
      */
-    private static final long REFRESH_INTERVAL_MS =10000; // 2 minutes
+    private static final long REFRESH_INTERVAL_MS =120000; // 2 minutes
 
     /**
      * Notification channel IDs - these are required by Android for notifications
      */
     private static final String CHANNEL_ID_FOREGROUND = "FarmMonitoringService";
-    private static final String CHANNEL_ID_ALERTS = "FarmAlerts";
+    public static final String CHANNEL_ID_ALERTS = "FarmAlerts";
 
     /**
      * Unique IDs for different types of notifications
      */
     private static final int NOTIFICATION_ID_FOREGROUND = 1001;
+    // This is a System Requirement. It’s the notification that tells the user the service is currently running.
+    // It is Ongoing. You cannot swipe it away.
     private static final int NOTIFICATION_ID_ALERT = 2001;
+    // This is the Emergency Notification. It only pops up when something is actually wrong.
 
     /**
      * Action name for broadcasting updates to the UI
@@ -318,6 +321,14 @@ public class FarmMonitoringService extends Service {
 
         // --- CHECK TEMPERATURE ---
         float tempMin = isDay ? activeVegetation.getDayTempMin() : activeVegetation.getNightTempMin();
+        // this is
+        /**float tempMin;
+
+        if (isDay == true) {
+            tempMin = activeVegetation.getDayTempMin();
+        } else {
+            tempMin = activeVegetation.getNightTempMin();
+        }*/
         float tempMax = isDay ? activeVegetation.getDayTempMax() : activeVegetation.getNightTempMax();
 
         if (farm.getTemp() < tempMin || farm.getTemp() > tempMax) {
@@ -494,33 +505,62 @@ public class FarmMonitoringService extends Service {
      * @param message The detailed message about what's wrong
      * @param vegetationName The name of the vegetation being monitored
      */
+    /**
+     * Sends a push notification to the user when a sensor threshold is breached.
+     * This method handles the creation of the notification, its visual style,
+     * and the logic for reopening the app when the user taps it.
+     */
     private void sendAlertNotification(String title, String message, String vegetationName) {
-        // Create an intent to open the app
-        Intent notificationIntent = new Intent(this, MainActivity.class);
+
+        // 1. Create a standard Intent to define the destination.
+        // We want to open MainActivity when the notification is clicked.
+        Intent intent = new Intent(this, MainActivity.class);
+
+        // Flags to ensure that clicking the notification doesn't create multiple
+        // instances of the app; instead, it brings the existing one to the front.
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        /*
+         * 2. Wrap the Intent in a PendingIntent.
+         * A PendingIntent is a "token" we give to the Android System.
+         * Since our Service might be destroyed by the time the user clicks the notification,
+         * the System uses this token to execute the Intent on our behalf.
+         * * FLAG_IMMUTABLE: Required for security in modern Android versions (API 31+).
+         * FLAG_UPDATE_CURRENT: If a PendingIntent already exists, update its data.
+         */
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this,
                 0,
-                notificationIntent,
-                PendingIntent.FLAG_IMMUTABLE
+                intent,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
-        // Build the alert notification
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID_ALERTS)
-                .setContentTitle(title)
-                .setContentText("Profile: " + vegetationName)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(message)) // Expandable text
-                .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true) // Dismiss when tapped
-                .setPriority(NotificationCompat.PRIORITY_HIGH) // High priority
-                .setDefaults(NotificationCompat.DEFAULT_ALL) // Sound, vibration, lights
-                .build();
+        /*
+         * 3. Build the notification using NotificationCompat.Builder.
+         * Using 'Compat' ensures the notification looks and works correctly
+         * across different Android versions.
+         */
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID_ALERTS)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert) // The icon shown in the status bar
+                .setContentTitle(title)                       // e.g., "High Temperature Alert!"
+                .setContentText(message)                      // e.g., "Tomato plant is at 35°C"
+                .setPriority(NotificationCompat.PRIORITY_HIGH) // Enables "Heads-up" (pop-up) behavior
+                .setCategory(NotificationCompat.CATEGORY_ALARM) // Helps the OS prioritize the alert
+                .setAutoCancel(true)                          // Removes notification after user clicks it
+                .setContentIntent(pendingIntent);             // Attach the PendingIntent defined above
 
-        // Send the notification
-        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        manager.notify(NOTIFICATION_ID_ALERT, notification);
+        /*
+         * 4. NotificationManager: The system service that manages all notifications.
+         */
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
-        Log.d("FarmMonitoringService", "🔔 Alert notification sent!");
+        if (notificationManager != null) {
+            /*
+             * By using a fixed NOTIFICATION_ID, any new alert will replace the old one.
+             * This prevents the user's notification tray from being flooded with
+             * dozens of similar alerts if the temperature stays out of range.
+             */
+            notificationManager.notify(NOTIFICATION_ID_ALERT, builder.build());
+        }
     }
 }
-

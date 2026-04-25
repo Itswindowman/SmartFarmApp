@@ -32,7 +32,7 @@ public class UserVegetationRepo extends BaseRepo {
      * field was always null and the row was silently dropped.
      */
     public static class UserVegetationRow {
-        public Long   UserVegID;      // ← fixed: was "UserVegetationID"
+        public Long   UserVegID;
         public Long   UserID;
         public Long   VegetationID;
         public String date;

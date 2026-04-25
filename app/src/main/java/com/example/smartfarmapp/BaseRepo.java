@@ -38,6 +38,10 @@ import okhttp3.ResponseBody;
  *
  * Child repos only need to parse the JSON string they receive – no HTTP
  * boilerplate required.
+ *
+ * GetRequest (executeGet) Retrieves data
+ * PostRequest (executePost) Creates data
+ * PatchRequest (executePatch) Updates existing data
  */
 public class BaseRepo {
 
@@ -54,7 +58,7 @@ public class BaseRepo {
     protected static final Handler      mainHandler = new Handler(Looper.getMainLooper());
 
     protected static final MediaType JSON_MEDIA_TYPE =
-            MediaType.get("application/json; charset=utf-8");
+            MediaType.get("application/json; charset=utf-8"); // to tell the server: "The data I am sending is in JSON format."
 
     protected BaseRepo() {}
 

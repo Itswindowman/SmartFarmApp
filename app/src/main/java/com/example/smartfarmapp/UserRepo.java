@@ -33,7 +33,7 @@ public class UserRepo extends BaseRepo {
                 List<User> users = gson.fromJson(json, listType);
 
                 if (users != null && !users.isEmpty()) {
-                    callback.onSuccess(users.get(0));
+                    callback.onSuccess(users.get(0)); // User found, login succeeds
                 } else {
                     callback.onFailure(new Exception("Invalid email or password"));
                 }
@@ -49,7 +49,7 @@ public class UserRepo extends BaseRepo {
 
     /**
      * Inserts a new User row into Supabase (sign-up).
-     * WARNING: passwords should be hashed before storage in production.
+     * WARNING FOR CYBERSECURITY: passwords should be hashed before storage in production.
      */
     public void addUser(User user, AddUserCallback callback) {
         String jsonBody = gson.toJson(user);
