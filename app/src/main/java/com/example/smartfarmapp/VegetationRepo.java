@@ -21,6 +21,9 @@ public class VegetationRepo extends BaseRepo {
 
     /**
      * Fetches all Vegetation rows from the database.
+     *
+     * Precondition: callback is not null.
+     * Postcondition: Calls callback.onSuccess with the list of vegetation from the database, or callback.onFailure on error.
      */
     public void fetchVegetations(FetchVegetationsCallback callback) {
         String url = VEGETATION_URL + "?select=*";
@@ -47,6 +50,9 @@ public class VegetationRepo extends BaseRepo {
      * Inserts a new Vegetation row.
      * The {@code id} field on {@code vegetation} must be {@code null} so Supabase
      * generates a new primary key automatically.
+     *
+     * Precondition: vegetation and callback are not null. vegetation.id should be null for new entries.
+     * Postcondition: Calls callback.onSuccess(null) if insert is successful, or callback.onFailure on error.
      */
     public void addVegetation(Vegetation vegetation, AddVegetationCallback callback) {
         String jsonBody = gson.toJson(vegetation);
@@ -57,6 +63,9 @@ public class VegetationRepo extends BaseRepo {
 
     /**
      * Updates an existing Vegetation row identified by its id.
+     *
+     * Precondition: vegetation and callback are not null. vegetation.getId() must return a valid ID.
+     * Postcondition: Calls callback.onSuccess(null) if update is successful, or callback.onFailure on error.
      */
     public void updateVegetation(Vegetation vegetation, UpdateVegetationCallback callback) {
         String url      = VEGETATION_URL + "?id=eq." + vegetation.getId();

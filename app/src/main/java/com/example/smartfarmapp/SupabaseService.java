@@ -25,6 +25,9 @@ public class SupabaseService extends BaseRepo {
 
     /**
      * Fetches all Farm rows for a user, ordered newest-first.
+     *
+     * Precondition: userId is a valid user ID and callback is not null.
+     * Postcondition: Calls callback.onSuccess with the list of farm readings for the user, or callback.onFailure on error.
      */
     public void fetchFarms(int userId, FarmCallback callback) {
         String url = FARM_URL + "?UserID=eq." + userId + "&order=id.desc";

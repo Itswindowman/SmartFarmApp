@@ -15,6 +15,10 @@ public class DailyReminderReceiver extends BroadcastReceiver {
     private static final String TAG = "DailyReminderReceiver";
     private static final int NOTIFICATION_ID = 1001;
 
+    /**
+     * Precondition: context and intent are provided by the system when the broadcast is received
+     * Postcondition: Shows a notification if the reminder is enabled, and reschedules the alarm for the next day or after boot
+     */
     @Override
     public void onReceive(Context context, Intent intent) {
         // Only proceed if the daily reminder is actually enabled in SharedPreferences
@@ -37,6 +41,10 @@ public class DailyReminderReceiver extends BroadcastReceiver {
         }
     }
 
+    /**
+     * Precondition: context is not null
+     * Postcondition: Displays a "Morning Farm Check" notification that opens MainActivity when clicked
+     */
     private void showNotification(Context context) {
         Intent mainIntent = new Intent(context, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(

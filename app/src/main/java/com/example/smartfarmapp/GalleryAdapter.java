@@ -35,6 +35,10 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.GalleryV
     private final OnImageClickListener imageClickListener;
     private final OnVideoClickListener videoClickListener;
 
+    /**
+     * Precondition: items is a valid List of FarmGallery objects, click listeners can be null
+     * Postcondition: A new GalleryAdapter is created with the provided list and listeners
+     */
     public GalleryAdapter(List<FarmGallery> items,
                           OnImageClickListener imageClickListener,
                           OnVideoClickListener videoClickListener) {
@@ -43,6 +47,10 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.GalleryV
         this.videoClickListener = videoClickListener;
     }
 
+    /**
+     * Precondition: parent is not null
+     * Postcondition: A new GalleryViewHolder is created with the inflated item_gallery layout
+     */
     @NonNull
     @Override
     public GalleryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -51,6 +59,10 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.GalleryV
         return new GalleryViewHolder(view);
     }
 
+    /**
+     * Precondition: holder is not null and position is within bounds of items list
+     * Postcondition: The UI elements in the holder are updated with data from the FarmGallery item at the given position, and click listeners are attached
+     */
     @Override
     public void onBindViewHolder(@NonNull GalleryViewHolder holder, int position) {
         FarmGallery item = items.get(position);
@@ -79,12 +91,20 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.GalleryV
         }
     }
 
+    /**
+     * Precondition: items is not null
+     * Postcondition: Returns the size of the items list
+     */
     @Override
     public int getItemCount() { return items.size(); }
 
     static class GalleryViewHolder extends RecyclerView.ViewHolder {
         ImageView ivThumbnail, ivPlayOverlay;
         TextView  tvDate;
+        /**
+         * Precondition: itemView is not null and contains the expected view IDs
+         * Postcondition: ViewHolder is initialized with references to the views in itemView
+         */
         public GalleryViewHolder(@NonNull View itemView) {
             super(itemView);
             ivThumbnail  = itemView.findViewById(R.id.ivGalleryThumbnail);
@@ -93,6 +113,10 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.GalleryV
         }
     }
 
+    /**
+     * Precondition: isoDate is a String in ISO 8601 format or null
+     * Postcondition: Returns a formatted date string or the original isoDate if parsing fails
+     */
     private String formatDate(String isoDate) {
         if (isoDate == null || isoDate.isEmpty()) return "Unknown date";
         try {

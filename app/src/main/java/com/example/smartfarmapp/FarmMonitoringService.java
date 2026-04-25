@@ -133,6 +133,9 @@ public class FarmMonitoringService extends Service {
      * onCreate() - Called ONCE when the service is first created
      *
      * This is like the constructor - we set up everything we need here.
+     *
+     * Precondition: None
+     * Postcondition: Data repositories are initialized and notification channels are created.
      */
     @Override
     public void onCreate() {
@@ -156,6 +159,9 @@ public class FarmMonitoringService extends Service {
      * @param flags Additional data about this start request
      * @param startId A unique identifier for this specific start request
      * @return How the system should handle restarting this service if it gets killed
+     *
+     * Precondition: intent, flags, and startId are provided by the system.
+     * Postcondition: The service is started in the foreground, active vegetation is loaded, and monitoring begins. Returns START_STICKY.
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -181,6 +187,9 @@ public class FarmMonitoringService extends Service {
      *
      * Binding is for when other components want to directly communicate with the service.
      * We use broadcasts instead, so we return null.
+     *
+     * Precondition: intent is provided by the system.
+     * Postcondition: Returns null as binding is not supported.
      */
     @Override
     public IBinder onBind(Intent intent) {
@@ -191,6 +200,9 @@ public class FarmMonitoringService extends Service {
      * onDestroy() - Called when the service is being shut down
      *
      * Clean up resources and stop all background tasks.
+     *
+     * Precondition: None
+     * Postcondition: The monitoring loop is stopped.
      */
     @Override
     public void onDestroy() {
@@ -215,6 +227,9 @@ public class FarmMonitoringService extends Service {
      * 2. Creates a Runnable (the task to repeat)
      * 3. Schedules the task to run immediately
      * 4. The task reschedules itself to run again after REFRESH_INTERVAL_MS
+     *
+     * Precondition: REFRESH_INTERVAL_MS is defined.
+     * Postcondition: A repeating monitoring task is started.
      */
     private void startMonitoring() {
         // Create a Handler tied to the main thread's message queue
@@ -247,6 +262,9 @@ public class FarmMonitoringService extends Service {
      * 3. If successful, check the latest reading
      * 4. If out of range, send notification
      * 5. Broadcast update to UI
+     *
+     * Precondition: user_id is stored in SharedPreferences.
+     * Postcondition: Latest farm data is fetched, checked for alerts, and a broadcast is sent to the UI.
      */
     private void fetchAndCheckFarmData() {
         // Get the logged-in user's ID from SharedPreferences
@@ -299,6 +317,9 @@ public class FarmMonitoringService extends Service {
      * and sends a notification if they are
      *
      * @param farm The latest farm reading to check
+     *
+     * Precondition: activeVegetation may be null.
+     * Postcondition: If activeVegetation is set and sensor values are out of range, an alert notification is sent and hasNotifiedOutOfRange is set to true.
      */
     private void checkAndNotifyIfOutOfRange(Farm farm) {
         // If no vegetation profile is set, we can't check ranges
@@ -382,6 +403,9 @@ public class FarmMonitoringService extends Service {
      *
      * @param isoDate The timestamp in ISO format from the database
      * @return true if daytime, false if nighttime
+     *
+     * Precondition: isoDate is in ISO format.
+     * Postcondition: Returns true if the hour is between 6 and 17 inclusive, false otherwise.
      */
     private boolean isDayTime(String isoDate) {
         if (isoDate == null) return true;
@@ -405,6 +429,9 @@ public class FarmMonitoringService extends Service {
      *
      * The active profile is stored as a JSON string, which we convert back
      * to a Vegetation object using Gson.
+     *
+     * Precondition: active_vegetation JSON is stored in SharedPreferences.
+     * Postcondition: activeVegetation variable is populated with the stored profile.
      */
     private void loadActiveVegetation() {
         SharedPreferences prefs = getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
@@ -423,6 +450,9 @@ public class FarmMonitoringService extends Service {
      * Sends a broadcast to notify the UI that new data is available
      *
      * MainFragment will listen for this broadcast and refresh the RecyclerView
+     *
+     * Precondition: ACTION_DATA_UPDATED is defined.
+     * Postcondition: An intent with ACTION_DATA_UPDATED is broadcasted.
      */
     private void broadcastDataUpdate() {
         Log.d("FarmMonitoringService", "Broadcasting: " + ACTION_DATA_UPDATED);
@@ -441,6 +471,9 @@ public class FarmMonitoringService extends Service {
      * Channels let users customize notification settings for different types
      * of notifications. For example, they can silence "Monitoring Active" but
      * keep "Alerts" at full volume.
+     *
+     * Precondition: None
+     * Postcondition: Foreground and Alert notification channels are created (API 26+).
      */
     private void createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -476,6 +509,9 @@ public class FarmMonitoringService extends Service {
      * know the service is running and prevents Android from killing it.
      *
      * @return A Notification object
+     *
+     * Precondition: CHANNEL_ID_FOREGROUND is created.
+     * Postcondition: Returns a low-priority, ongoing notification for the foreground service.
      */
     private Notification createForegroundNotification() {
         // Create an intent to open the app when the notification is tapped
@@ -504,6 +540,9 @@ public class FarmMonitoringService extends Service {
      * @param title The notification title
      * @param message The detailed message about what's wrong
      * @param vegetationName The name of the vegetation being monitored
+     *
+     * Precondition: CHANNEL_ID_ALERTS is created.
+     * Postcondition: Displays a high-priority alert notification for the user.
      */
     /**
      * Sends a push notification to the user when a sensor threshold is breached.

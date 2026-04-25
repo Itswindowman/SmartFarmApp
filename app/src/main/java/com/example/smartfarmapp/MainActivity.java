@@ -34,6 +34,9 @@ public class MainActivity extends AppCompatActivity {
      * all of your normal static set up: create views, bind data to lists, etc.
      * This method also provides you with a Bundle containing the activity's previously frozen state, if there was one.
      * @param savedInstanceState If the activity is being re-initialized after previously being shut down then this Bundle contains the data it most recently supplied in onSaveInstanceState(Bundle). Note: Otherwise it is null.
+     *
+     * Precondition: savedInstanceState is provided by the system.
+     * Postcondition: The activity is initialized, the layout is set, network monitoring is started, and navigation is handled based on SharedPreferences.
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +65,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Precondition: connectivityManager is not yet initialized.
+     * Postcondition: connectivityManager is initialized and a default network callback is registered to show Toasts/Dialogs on connection changes.
+     */
     private void setupConstantMonitoring() {
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -89,6 +96,10 @@ public class MainActivity extends AppCompatActivity {
         connectivityManager.registerDefaultNetworkCallback(networkCallback);
     }
 
+    /**
+     * Precondition: The activity is being destroyed.
+     * Postcondition: The network callback is unregistered to avoid memory leaks.
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();

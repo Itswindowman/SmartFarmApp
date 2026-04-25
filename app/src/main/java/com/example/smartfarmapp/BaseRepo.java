@@ -60,6 +60,8 @@ public class BaseRepo {
     protected static final MediaType JSON_MEDIA_TYPE =
             MediaType.get("application/json; charset=utf-8"); // to tell the server: "The data I am sending is in JSON format."
 
+    // Precondition: None
+    // Postcondition: A new BaseRepo object is created
     protected BaseRepo() {}
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -88,6 +90,9 @@ public class BaseRepo {
     /**
      * Builds an authenticated GET {@link Request} for the given URL.
      * Use this when you need to execute the request yourself (e.g. synchronously).
+     *
+     * Precondition: url is a valid String.
+     * Postcondition: Returns an authenticated GET Request object for Supabase.
      */
     protected Request buildGetRequest(String url) {
         return new Request.Builder()
@@ -103,6 +108,9 @@ public class BaseRepo {
      *
      * @param preferMinimal when {@code true} adds {@code Prefer: return=minimal}
      *                      so Supabase returns an empty body (saves bandwidth).
+     *
+     * Precondition: url and jsonBody are valid Strings.
+     * Postcondition: Returns an authenticated POST Request object with JSON body.
      */
     protected Request buildPostRequest(String url, String jsonBody, boolean preferMinimal) {
         RequestBody body = RequestBody.create(jsonBody, JSON_MEDIA_TYPE);
@@ -119,6 +127,9 @@ public class BaseRepo {
     /**
      * Builds an authenticated PATCH {@link Request} with a JSON body.
      * Always uses {@code Prefer: return=minimal}.
+     *
+     * Precondition: url and jsonBody are valid Strings.
+     * Postcondition: Returns an authenticated PATCH Request object with JSON body.
      */
     protected Request buildPatchRequest(String url, String jsonBody) {
         RequestBody body = RequestBody.create(jsonBody, JSON_MEDIA_TYPE);
@@ -143,6 +154,9 @@ public class BaseRepo {
      * @param tag     log tag identifying the calling repo/method
      * @param url     full Supabase REST URL (with any query parameters)
      * @param callback receives the raw JSON string or an exception
+     *
+     * Precondition: url and callback are not null.
+     * Postcondition: Executes GET request asynchronously, delivers raw JSON to callback on main thread.
      */
     protected void executeGet(String tag, String url, RawCallback callback) {
         Request request = buildGetRequest(url);
@@ -182,6 +196,9 @@ public class BaseRepo {
      * @param jsonBody      serialised request payload
      * @param preferMinimal whether to add {@code Prefer: return=minimal}
      * @param callback      result callback
+     *
+     * Precondition: url, jsonBody, and callback are not null.
+     * Postcondition: Executes POST request asynchronously, delivers success/failure to callback on main thread.
      */
     protected void executePost(String tag, String url, String jsonBody,
                                boolean preferMinimal, RepoCallBack<Void> callback) {
@@ -221,6 +238,9 @@ public class BaseRepo {
      * @param url      target URL (must already include the row filter, e.g. {@code ?id=eq.5})
      * @param jsonBody serialised patch payload
      * @param callback result callback
+     *
+     * Precondition: url, jsonBody, and callback are not null.
+     * Postcondition: Executes PATCH request asynchronously, delivers success/failure to callback on main thread.
      */
     protected void executePatch(String tag, String url, String jsonBody,
                                 RepoCallBack<Void> callback) {
@@ -256,7 +276,12 @@ public class BaseRepo {
     //  Internal utilities
     // ═════════════════════════════════════════════════════════════════════════
 
-    /** Safely reads and returns the error body string without throwing. */
+    /**
+     * Safely reads and returns the error body string without throwing.
+     *
+     * Precondition: response is not null.
+     * Postcondition: Safely reads and returns error body or fallback message.
+     */
     private String readErrorBody(Response response) {
         try (ResponseBody errorBody = response.body()) {
             return errorBody != null ? errorBody.string() : "(empty body)";

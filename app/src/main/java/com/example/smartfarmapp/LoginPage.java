@@ -43,12 +43,16 @@ public class LoginPage extends Fragment { // did the class for the book
 
     public LoginPage() {}
 
+    // Precondition: inflater, container, and savedInstanceState are provided by the system
+    // Postcondition: Returns the inflated View for the login page fragment
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_login_page, container, false);
     }
 
+    // Precondition: view and savedInstanceState are provided by the system
+    // Postcondition: UI elements and repos are initialized, listeners are attached
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -70,6 +74,8 @@ public class LoginPage extends Fragment { // did the class for the book
 
     // ─────────────────────────────────────────────────────────────────────────
 
+    // Precondition: sharedPreferences is initialized
+    // Postcondition: Email and password fields are populated if Remember Me was previously checked
     private void loadPreferences() {
         boolean shouldRemember = sharedPreferences.getBoolean(KEY_REMEMBER_ME, false);
         cbRememberMe.setChecked(shouldRemember);

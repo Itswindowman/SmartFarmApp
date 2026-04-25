@@ -18,6 +18,9 @@ public class SimpleAlarmManager {
 
     /**
      * Enable or disable daily reminder
+     *
+     * Precondition: context is not null.
+     * Postcondition: Daily reminder is scheduled or cancelled, and its state is saved in SharedPreferences.
      */
     public static void setDailyReminder(Context context, boolean enable) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -42,6 +45,9 @@ public class SimpleAlarmManager {
 
     /**
      * Check if daily reminder is enabled
+     *
+     * Precondition: context is not null.
+     * Postcondition: Returns the current state of the daily reminder from SharedPreferences.
      */
     public static boolean isDailyReminderEnabled(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -50,6 +56,9 @@ public class SimpleAlarmManager {
 
     /**
      * Schedule the daily alarm for 8:00 AM
+     *
+     * Precondition: context is not null.
+     * Postcondition: Returns true if the alarm was successfully scheduled for 8:00 AM today or tomorrow, false otherwise.
      */
     public static boolean scheduleDailyAlarm(Context context) {
         try {
@@ -88,6 +97,9 @@ public class SimpleAlarmManager {
 
     /**
      * Cancel the daily alarm
+     *
+     * Precondition: context is not null.
+     * Postcondition: The daily reminder alarm is cancelled.
      */
     public static void cancelDailyAlarm(Context context) {
         try {

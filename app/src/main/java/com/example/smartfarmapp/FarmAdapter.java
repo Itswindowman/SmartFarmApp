@@ -36,6 +36,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * --- CONSTRUCTOR ---
      * The constructor receives the initial list of farm data.
      * @param farmList The list of Farm objects to be displayed.
+     *
+     * Precondition: farmList is a valid List of Farm objects (can be empty).
+     * Postcondition: A new FarmAdapter is created with the provided list.
      */
     public FarmAdapter(List<Farm> farmList) {
         this.farmList = farmList;
@@ -46,6 +49,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * After setting the profile, it calls `notifyDataSetChanged()` which tells the RecyclerView
      * to redraw itself, re-running the onBindViewHolder logic for all visible items to update their colors.
      * @param vegetation The new active vegetation profile.
+     *
+     * Precondition: vegetation can be null or a valid Vegetation object.
+     * Postcondition: activeVegetation is updated and the UI is notified to refresh.
      */
     public void setActiveVegetation(Vegetation vegetation) {
         this.activeVegetation = vegetation;
@@ -55,11 +61,18 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
     /**
      * Returns the currently active vegetation profile.
      * @return The active Vegetation object.
+     *
+     * Precondition: None
+     * Postcondition: Returns the current activeVegetation.
      */
     public Vegetation getActiveVegetation() {
         return this.activeVegetation;
     }
 
+    /**
+     * Precondition: None
+     * Postcondition: farmList is cleared, activeVegetation is set to null, and the UI is notified to refresh.
+     */
     public void clearData() {
         if (farmList != null) {
             farmList.clear();
@@ -75,6 +88,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * @param parent The ViewGroup into which the new View will be added after it is bound to an adapter position.
      * @param viewType The view type of the new View.
      * @return A new FarmViewHolder that holds a View of the given view type.
+     *
+     * Precondition: parent is not null and provides context.
+     * Postcondition: A new FarmViewHolder is created with the inflated item_farm layout and defaultTextColor is initialized.
      */
     @NonNull
     @Override
@@ -98,6 +114,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * It takes a recycled ViewHolder and fills it with the correct data for the given `position`.
      * @param holder The ViewHolder which should be updated to represent the contents of the item at the given position in the data set.
      * @param position The position of the item within the adapter's data set.
+     *
+     * Precondition: holder is not null and position is within the bounds of farmList.
+     * Postcondition: The UI elements in the holder are updated with data from the Farm object at the given position, and colors are applied based on activeVegetation.
      */
     @Override
     public void onBindViewHolder(@NonNull FarmViewHolder holder, int position) {
@@ -160,6 +179,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * --- 3. GET-ITEM-COUNT ---
      * A very simple but essential method that just tells the RecyclerView the total number of items in the data list.
      * @return The total number of items in this adapter.
+     *
+     * Precondition: farmList is not null.
+     * Postcondition: Returns the size of farmList.
      */
     @Override
     public int getItemCount() {
@@ -173,6 +195,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * @param value The current sensor value.
      * @param min The minimum allowed value.
      * @param max The maximum allowed value.
+     *
+     * Precondition: textView is not null.
+     * Postcondition: Sets textView color to Color.GRAY if any numeric parameter is null, Color.RED if value is out of [min, max], or defaultTextColor if in range.
      */
     private void checkValue(TextView textView, Double value, Double min, Double max) {
         // If any of the values are null (missing data), color the text gray to indicate uncertainty.
@@ -191,6 +216,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * A helper method to determine if a given timestamp is during the day (defined as 6:00 AM to 5:59 PM).
      * @param isoDate The date string from the database (in ISO 8601 format).
      * @return `true` if it's daytime, `false` otherwise.
+     *
+     * Precondition: isoDate is a String in ISO 8601 format or null.
+     * Postcondition: Returns true if the hour in isoDate is between 6 and 17 inclusive, false otherwise. Defaults to true.
      */
     public boolean isDayTime(String isoDate) {
         if (isoDate == null) return true; // Default to daytime if the date is missing.
@@ -215,6 +243,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * A helper method to format the technical date string from Supabase into a more human-readable format.
      * @param isoDate The date string from the database.
      * @return A formatted date string (e.g., "15 Jul 2024, 14:30").
+     *
+     * Precondition: isoDate is a String in ISO 8601 format or null.
+     * Postcondition: Returns a formatted date string or the original isoDate if parsing fails.
      */
     private String formatDate(String isoDate) {
         if (isoDate == null) return "N/A"; // Handle missing date gracefully.
@@ -241,6 +272,10 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
         // Declare the views for a single row.
         TextView tvTemp, tvGroundHumid, tvAirHumid, tvDateTime;
 
+        /**
+         * Precondition: itemView is not null and contains the expected view IDs.
+         * Postcondition: ViewHolder is initialized with references to the TextViews in itemView.
+         */
         public FarmViewHolder(@NonNull View itemView) {
             super(itemView);
             // We find the views by their ID here, just once when the ViewHolder is created.

@@ -50,6 +50,9 @@ public class UserVegetationRepo extends BaseRepo {
     /**
      * Fetches the most-recently-assigned Vegetation for the given userId.
      * Delivers {@code null} via {@code onSuccess} if no UserVegetation row exists.
+     *
+     * Precondition: userId is valid and callback is not null.
+     * Postcondition: Initiates fetching of the most recent UserVegetationRow, then fetches the corresponding full Vegetation object and calls callback.
      */
     public void fetchActiveVegetation(int userId, ActiveVegetationCallback callback) {
         String url = USER_VEG_URL + "?UserID=eq." + userId + "&order=date.desc&limit=1";
@@ -83,6 +86,10 @@ public class UserVegetationRepo extends BaseRepo {
 
     // ── Private step 2 ───────────────────────────────────────────────────────
 
+    /**
+     * Precondition: vegetationId is a valid ID and callback is not null.
+     * Postcondition: Fetches full Vegetation data from Supabase and calls callback.onSuccess with the object or callback.onFailure on error.
+     */
     private void fetchVegetationById(long vegetationId, ActiveVegetationCallback callback) {
         String url = VEGETATION_URL + "?id=eq." + vegetationId;
 

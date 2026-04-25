@@ -77,6 +77,8 @@ public class MainFragment extends Fragment {
     private AlertDialog noNetworkDialog;          // reference to the currently shown dialog
     private ImageButton btnLogout; // Add this for the logout button
 
+    // Precondition: inflater, container, and savedInstanceState are provided by the system
+    // Postcondition: Returns the inflated View for the main fragment, with listeners attached to UI elements
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -144,6 +146,8 @@ public class MainFragment extends Fragment {
         return view;
     }
 
+    // Precondition: SharedPreferences is accessible and user is logged in
+    // Postcondition: User login data is cleared from SharedPreferences, adapter data is cleared, and user is navigated back to LoginPage
     private void handleLogout() {
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -246,8 +250,12 @@ public class MainFragment extends Fragment {
     private List<FarmGallery> galleryItems = new ArrayList<>();
 
 
+    // Precondition: None
+    // Postcondition: A new MainFragment object is created
     public MainFragment() {}
 
+    // Precondition: savedInstanceState is provided by the system
+    // Postcondition: Fragment state and repositories are initialized, notification channel is created
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -264,6 +272,8 @@ public class MainFragment extends Fragment {
     // Used for background things
     // ─────────────────────────────────────────────────────────────────────────
 
+    // Precondition: Fragment is being resumed
+    // Postcondition: Network monitoring, periodic refresh, and FarmMonitoringService are started; data is loaded
     @Override
     public void onResume() {
         super.onResume();
@@ -296,6 +306,8 @@ public class MainFragment extends Fragment {
         loadActiveVegetationFromDB();
     }
 
+    // Precondition: Fragment is being paused
+    // Postcondition: Periodic refresh is stopped, receivers and callbacks are unregistered, and network dialog is dismissed
     @Override
     public void onPause() {
         super.onPause();
@@ -332,6 +344,9 @@ public class MainFragment extends Fragment {
      * Queries UserVegetation table for the most recent row belonging to this user,
      * then fetches the full Vegetation record and applies it as the active profile.
      * Falls back to SharedPreferences on failure.
+     *
+     * Precondition: Internet is available and user_id is saved in SharedPreferences
+     * Postcondition: The active vegetation profile is loaded from DB and applied to the adapter and UI, and saved to SharedPreferences. On failure, calls loadActiveVegetationFallback().
      */
     private void loadActiveVegetationFromDB() {
         if (!NetworkUtil.isInternetAvailable(requireContext())) {
@@ -377,7 +392,10 @@ public class MainFragment extends Fragment {
                 });
     }
 
-    /** Fallback: read from SharedPreferences (old behavior). */
+    /** Fallback: read from SharedPreferences (old behavior).
+     * Precondition: None
+     * Postcondition: The active vegetation profile is loaded from SharedPreferences and applied to the adapter and UI if it exists
+     */
     private void loadActiveVegetationFallback() {
         SharedPreferences prefs = requireActivity()
                 .getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
@@ -408,6 +426,9 @@ public class MainFragment extends Fragment {
      *
      * Image tap → showFullscreenImageDialog()
      * Video tap → showFullscreenVideoDialog()
+     *
+     * Precondition: User is logged in (user_id is in SharedPreferences)
+     * Postcondition: An AlertDialog showing the gallery is displayed
      */
     private void showGalleryDialog() {
         SharedPreferences prefs = requireActivity()
@@ -493,7 +514,10 @@ public class MainFragment extends Fragment {
         });
     }
 
-    /** Called by both picker launchers after the user selects a file. */
+    /** Called by both picker launchers after the user selects a file.
+     * Precondition: result and fallbackMime are provided from picker
+     * Postcondition: Uploads the selected file to Supabase and saves the URI to the database for the user
+     */
     private void handlePickerResult(ActivityResult result, String fallbackMime) {
         if (result.getResultCode() != Activity.RESULT_OK
                 || result.getData() == null
@@ -525,7 +549,10 @@ public class MainFragment extends Fragment {
         pendingUploadCallback = null; // consumed
     }
 
-    /** Fetches the user's gallery rows from Supabase and refreshes the grid. */
+    /** Fetches the user's gallery rows from Supabase and refreshes the grid.
+     * Precondition: userId is valid, statusView is not null
+     * Postcondition: Fetches gallery items from repository and updates the gallery adapter and statusView
+     */
     private void loadGalleryItems(int userId, TextView statusView) {
         if (!NetworkUtil.isInternetAvailable(requireContext())) {
             statusView.setText("❌ No internet connection.");
@@ -550,7 +577,10 @@ public class MainFragment extends Fragment {
         });
     }
 
-    /** Shows a photo full-screen using Glide inside an AlertDialog. */
+    /** Shows a photo full-screen using Glide inside an AlertDialog.
+     * Precondition: imageUrl is a valid URL string
+     * Postcondition: Displays an AlertDialog with the full-screen image
+     */
     private void showFullscreenImageDialog(String imageUrl) {
         View imgView = LayoutInflater.from(getContext())
                 .inflate(R.layout.dialog_fullscreen_image, null);
@@ -566,6 +596,9 @@ public class MainFragment extends Fragment {
     /**
      * Shows a video full-screen in a WebView inside an AlertDialog.
      * The video URL is embedded in an HTML5 <video> tag so it plays inline.
+     *
+     * Precondition: videoUrl is a valid URL string
+     * Postcondition: Displays an AlertDialog with a WebView playing the video
      */
     private void showFullscreenVideoDialog(String videoUrl) {
         View videoView = LayoutInflater.from(getContext())
@@ -609,6 +642,8 @@ public class MainFragment extends Fragment {
     // LIVE CAMERA DIALOG  – PRESERVED EXACTLY FROM ORIGINAL
     // ─────────────────────────────────────────────────────────────────────────
 
+    // Precondition: None
+    // Postcondition: Displays an AlertDialog with a WebView showing the live camera stream and interactive buttons
     private void showLiveCameraDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext(), R.style.CustomDialogTheme);
 
@@ -704,6 +739,8 @@ public class MainFragment extends Fragment {
     // EVERYTHING BELOW IS UNCHANGED FROM ORIGINAL
     // ─────────────────────────────────────────────────────────────────────────
 
+    // Precondition: view is not null and contains switchDailyReminder
+    // Postcondition: The daily reminder switch is initialized based on SharedPreferences and listener is attached
     private void setupDailyReminderSwitch(View view) {
         Switch switchDailyReminder = view.findViewById(R.id.switchDailyReminder);
         boolean isEnabled = SimpleAlarmManager.isDailyReminderEnabled(requireContext());
@@ -712,6 +749,8 @@ public class MainFragment extends Fragment {
                 SimpleAlarmManager.setDailyReminder(requireContext(), isChecked));
     }
 
+    // Precondition: None
+    // Postcondition: Notification permission is requested if not already granted (API 33+)
     private void askForNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(requireContext(),
@@ -721,6 +760,10 @@ public class MainFragment extends Fragment {
         }
     }
 
+    /**
+     * Precondition: Internet is available and user_id is in SharedPreferences
+     * Postcondition: Fetches farm data from Supabase and updates the RecyclerView adapter on the UI thread
+     */
     private void loadFarmData() {
         if (!NetworkUtil.isInternetAvailable(requireContext())) {
             Log.d("MainFragment", "loadFarmData: Skipping periodic load, no internet.");
@@ -772,6 +815,8 @@ public class MainFragment extends Fragment {
         });
     }
 
+    // Precondition: None
+    // Postcondition: Displays an AlertDialog for adding or editing vegetation profiles
     private void showAddFarmDialog() {
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View dialogView = inflater.inflate(R.layout.dialog_add_farm, null);
@@ -960,6 +1005,8 @@ public class MainFragment extends Fragment {
         dialog.show();
     }
 
+    // Precondition: veg is not null, fields array contains exactly 12 EditTexts
+    // Postcondition: UI fields are populated with values from the vegetation object
     private void populateForm(Vegetation veg, EditText[] fields) {
         fields[0].setText(String.valueOf(veg.getDayTempMin()));
         fields[1].setText(String.valueOf(veg.getDayTempMax()));
@@ -975,11 +1022,15 @@ public class MainFragment extends Fragment {
         fields[11].setText(String.valueOf(veg.getNightAirHumidMax()));
     }
 
+    // Precondition: fields and nameField are not null
+    // Postcondition: All provided EditText fields are cleared
     private void clearForm(EditText[] fields, EditText nameField) {
         nameField.setText("");
         for (EditText field : fields) field.setText("");
     }
 
+    // Precondition: None
+    // Postcondition: Creates a high importance notification channel for Farm Alerts (API 26+)
     public void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = "Farm Alerts";
@@ -992,6 +1043,8 @@ public class MainFragment extends Fragment {
         }
     }
 
+    // Precondition: details and activeProfile are not null
+    // Postcondition: Sends a high priority notification with sensor alert details
     private void sendOutOfRangeNotification(String details, Vegetation activeProfile) {
         int icon = R.drawable.ic_launcher_foreground;
         Notification.Builder builder;
@@ -1009,6 +1062,8 @@ public class MainFragment extends Fragment {
         requireContext().getSystemService(NotificationManager.class).notify(1, builder.build());
     }
 
+    // Precondition: farm and profile are not null
+    // Postcondition: Returns a String detailing which sensor values are out of range based on time of day
     private String getOutOfRangeDetails(Farm farm, Vegetation profile) {
         if (profile == null || farm == null) return "";
         boolean isDay = adapter.isDayTime(farm.getDateTime());
@@ -1038,6 +1093,10 @@ public class MainFragment extends Fragment {
         return details.toString().trim();
     }
 
+    /**
+     * Precondition: adapter and farmList are not empty
+     * Postcondition: Checks if latest farm data is out of range and sends notification if it is
+     */
     private void checkForNotifications() {
         Vegetation activeProfile = adapter.getActiveVegetation();
         if (activeProfile != null && !farmList.isEmpty()) {
@@ -1047,7 +1106,8 @@ public class MainFragment extends Fragment {
     }
 
 
-
+    // Precondition: None
+    // Postcondition: Stops the FarmMonitoringService
     public void stopMonitoringService() {
         Intent serviceIntent = new Intent(requireContext(), FarmMonitoringService.class);
         requireContext().stopService(serviceIntent);
@@ -1055,6 +1115,8 @@ public class MainFragment extends Fragment {
         Toast.makeText(getContext(), "Background monitoring stopped", Toast.LENGTH_SHORT).show();
     }
 
+    // Precondition: FarmTimer is set
+    // Postcondition: Starts periodic loading of farm data using a Timer
     private void startPeriodicRefresh() {
         if (refreshTimer != null) { refreshTimer.cancel(); refreshTimer = null; }
         refreshTimer = new Timer();
@@ -1070,6 +1132,8 @@ public class MainFragment extends Fragment {
         refreshTimer.schedule(refreshTask, 0, FarmTimer);
     }
 
+    // Precondition: None
+    // Postcondition: Stops the periodic refresh Timer
     private void stopPeriodicRefresh() {
         if (refreshTimer != null) {
             refreshTimer.cancel();
@@ -1078,6 +1142,10 @@ public class MainFragment extends Fragment {
         }
     }
 
+    /**
+     * Precondition: None
+     * Postcondition: connectivityManager is initialized and a network callback is registered to show/dismiss the no-internet dialog
+     */
     private void setupNetworkMonitoring() {
         connectivityManager = (ConnectivityManager) requireContext().getSystemService(Context.CONNECTIVITY_SERVICE);
 

@@ -60,6 +60,9 @@ public class FarmGalleryRepo extends BaseRepo {
     /**
      * Full pipeline: read file → upload binary to Storage → insert public URL into table.
      * Runs file I/O on a background thread; all callbacks arrive on the main thread.
+     *
+     * Precondition: context, fileUri, mimeType, and callback are not null.
+     * Postcondition: Uploads binary to storage and inserts a row in the gallery table, then calls callback.onSuccess with the public URL or callback.onFailure on error.
      */
     public void uploadAndSave(Context context, Uri fileUri, String mimeType,
                               long userId, UploadCallback callback) {
@@ -107,6 +110,9 @@ public class FarmGalleryRepo extends BaseRepo {
 
     /**
      * Fetches all FarmGallery rows for a user, newest first.
+     *
+     * Precondition: userId is valid and callback is not null.
+     * Postcondition: Calls callback.onSuccess with the list of gallery items for the user, or callback.onFailure on error.
      */
     public void fetchGalleryForUser(long userId, FetchGalleryCallback callback) {
         String url = GALLERY_TABLE_URL + "?UserID=eq." + userId + "&order=date.desc";
@@ -135,6 +141,9 @@ public class FarmGalleryRepo extends BaseRepo {
      * Uploads raw bytes to the Supabase Storage bucket.
      * This is NOT JSON, so we cannot use the inherited executePost() helper.
      * Runs synchronously – must be called from a background thread.
+     *
+     * Precondition: bytes, mimeType, and path are valid. Must be called on a background thread.
+     * Postcondition: Synchronously uploads binary to storage and calls callback with the result.
      */
     private void uploadBinaryToStorage(byte[] bytes, String mimeType,
                                        String path, UploadCallback callback) {
@@ -171,6 +180,9 @@ public class FarmGalleryRepo extends BaseRepo {
 
     /**
      * Inserts a FarmGallery row via the inherited executePost() helper.
+     *
+     * Precondition: publicUrl is a valid URL string and callback is not null.
+     * Postcondition: Calls executePost to insert a new row in the FarmGallery table.
      */
     private void insertGalleryRow(String publicUrl, long userId, AddGalleryCallback callback) {
         FarmGallery item   = new FarmGallery(userId, publicUrl);

@@ -14,6 +14,9 @@ public class NetworkUtil {
     /**
      * Checks if the device has an active and functional internet connection.
      * Essential for preventing network-related crashes.
+     *
+     * Precondition: context is not null.
+     * Postcondition: Returns true if there is an active internet connection via WIFI, CELLULAR, or ETHERNET, false otherwise.
      */
     public static boolean isInternetAvailable(Context context) {
 
