@@ -8,6 +8,12 @@ public class Vegetation {
     // Gson will then OMIT the `id` field from the JSON it sends to Supabase,
     // which is the correct way to ask Supabase to generate a new, unique ID.
     private Long id;
+
+    // NEW: ties this vegetation to the user who created it (private vegetations).
+    // Must be set before calling VegetationRepo.addVegetation(), or Supabase
+    // will insert a row with UserID = NULL, invisible to everyone.
+    private Long UserID;
+
     private String name;
 
     private float dayTempMin;
@@ -113,6 +119,18 @@ public class Vegetation {
     // Postcondition: The vegetation's id is updated
     public void setId(Long id) {
         this.id = id;
+    }
+
+    // Precondition: None
+    // Postcondition: Returns the current value of UserID
+    public Long getUserID() {
+        return UserID;
+    }
+
+    // Precondition: A valid Long userID is provided
+    // Postcondition: The vegetation's owning UserID is updated
+    public void setUserID(Long userID) {
+        this.UserID = userID;
     }
 
     // Precondition: None

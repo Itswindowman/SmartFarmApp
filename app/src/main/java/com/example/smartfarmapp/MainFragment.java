@@ -235,6 +235,7 @@ public class MainFragment extends Fragment {
     // ORIGINAL STATE
     // ─────────────────────────────────────────────────────────────────────────
 
+    private java.util.Map<Long, Long> vegIdToUserVegId = new java.util.HashMap<>();
     private List<Vegetation> allVegetations    = new ArrayList<>();
     private Vegetation       selectedVegetation = null;
     private boolean          isEditMode         = false;
@@ -768,7 +769,17 @@ public class MainFragment extends Fragment {
 
     // Precondition: None
     // Postcondition: Displays an AlertDialog for adding or editing vegetation profiles
+    // Precondition: None
+    // Postcondition: Displays an AlertDialog for adding or editing vegetation profiles
     private void showAddFarmDialog() {
+        SharedPreferences userPrefs = requireActivity()
+                .getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
+        int userId = userPrefs.getInt("user_id", -1);
+        if (userId == -1) {
+            Toast.makeText(getContext(), "Please log in first.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View dialogView = inflater.inflate(R.layout.dialog_add_farm, null);
 
@@ -793,7 +804,9 @@ public class MainFragment extends Fragment {
                 etDayGroundMin, etDayGroundMax, etNightGroundMin, etNightGroundMax,
                 etDayAirMin, etDayAirMax, etNightAirMin, etNightAirMax};
 
-        vegetationRepo.fetchVegetations(new VegetationRepo.FetchVegetationsCallback() {
+        // CHANGED: fetchVegetationsForUser() instead of the old unfiltered
+        // fetchVegetations() — this user's vegetations only, not everyone's.
+        vegetationRepo.fetchVegetationsForUser(userId, new VegetationRepo.FetchVegetationsCallback() {
             @Override public void onSuccess(List<Vegetation> vegetations) {
                 allVegetations = vegetations;
                 List<String> vegetationNames = allVegetations.stream()
@@ -802,6 +815,22 @@ public class MainFragment extends Fragment {
                         android.R.layout.simple_spinner_item, vegetationNames);
                 spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                 spinnerVegetation.setAdapter(spinnerAdapter);
+
+                // NEW: also fetch the UserVegetation link rows, so we know
+                // each vegetation's UserVegID — "Set Active" needs that id,
+                // not the VegetationID, to target the right row to activate.
+                userVegetationRepo.fetchUserVegetationRows(userId,
+                        new UserVegetationRepo.UserVegetationListCallback() {
+                            @Override public void onSuccess(List<UserVegetationRepo.UserVegetationRow> rows) {
+                                vegIdToUserVegId.clear();
+                                for (UserVegetationRepo.UserVegetationRow row : rows) {
+                                    vegIdToUserVegId.put(row.VegetationID, row.UserVegID);
+                                }
+                            }
+                            @Override public void onFailure(Exception e) {
+                                Log.e("MainFragment", "Could not load UserVegetation links", e);
+                            }
+                        });
             }
             @Override public void onFailure(Exception e) {
                 Toast.makeText(getContext(), "Could not load existing vegetations.", Toast.LENGTH_SHORT).show();
@@ -847,32 +876,60 @@ public class MainFragment extends Fragment {
                 @Override public void onNothingSelected(AdapterView<?> parent) { selectedVegetation = null; }
             });
 
+            // CHANGED: "Set Active" now writes to the database (UserVegetation.isActive)
+            // instead of only saving to SharedPreferences. The on-device adapter/UI
+            // update still happens immediately for snappy feedback; the DB call
+            // is what makes the choice durable and visible to loadActiveVegetationFromDB()
+            // the next time the app starts.
             btnNeutral.setOnClickListener(v -> {
-                if (selectedVegetation != null) {
-                    if (!NetworkUtil.isInternetAvailable(requireContext())) {
-                        Toast.makeText(getContext(), "No internet connection. Cannot set profile.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    tvActiveVegetation.setText("Monitoring Profile: " + selectedVegetation.getName());
-                    adapter.setActiveVegetation(selectedVegetation);
-
-                    SharedPreferences sharedPreferences = requireActivity()
-                            .getSharedPreferences("SmartFarmPrefs", Context.MODE_PRIVATE);
-                    Gson gson = new Gson();
-                    String vegetationJson = gson.toJson(selectedVegetation);
-                    sharedPreferences.edit()
-                            .putString("active_vegetation_profile", vegetationJson)
-                            .putString("active_vegetation", vegetationJson)
-                            .apply();
-
-                    checkForNotifications();
-                    Toast.makeText(getContext(),
-                            selectedVegetation.getName() + " is now the active monitoring profile.",
-                            Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                } else {
+                if (selectedVegetation == null) {
                     Toast.makeText(getContext(), "Please select a vegetation first.", Toast.LENGTH_SHORT).show();
+                    return;
                 }
+                if (!NetworkUtil.isInternetAvailable(requireContext())) {
+                    Toast.makeText(getContext(), "No internet connection. Cannot set profile.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Long userVegId = vegIdToUserVegId.get(selectedVegetation.getId());
+                if (userVegId == null) {
+                    // Shouldn't normally happen — every vegetation in the spinner
+                    // should have a matching UserVegetation row — but guard anyway
+                    // in case the link-row fetch hasn't completed yet or failed.
+                    Toast.makeText(getContext(),
+                            "Could not find this vegetation's profile link. Please reopen and try again.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                userVegetationRepo.setActiveVegetation(userId, userVegId,
+                        new UserVegetationRepo.SetActiveCallback() {
+                            @Override public void onSuccess(Void result) {
+                                tvActiveVegetation.setText("Monitoring Profile: " + selectedVegetation.getName());
+                                adapter.setActiveVegetation(selectedVegetation);
+
+                                // Keep a local cache for instant UI on next launch
+                                // before the DB round-trip in loadActiveVegetationFromDB()
+                                // completes; DB remains the source of truth.
+                                Gson gson = new Gson();
+                                String vegetationJson = gson.toJson(selectedVegetation);
+                                userPrefs.edit()
+                                        .putString("active_vegetation_profile", vegetationJson)
+                                        .putString("active_vegetation", vegetationJson)
+                                        .apply();
+
+                                checkForNotifications();
+                                Toast.makeText(getContext(),
+                                        selectedVegetation.getName() + " is now the active monitoring profile.",
+                                        Toast.LENGTH_SHORT).show();
+                                dialog.dismiss();
+                            }
+                            @Override public void onFailure(Exception e) {
+                                Toast.makeText(getContext(),
+                                        "Failed to set active profile: " + e.getMessage(),
+                                        Toast.LENGTH_LONG).show();
+                            }
+                        });
             });
 
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
@@ -942,6 +999,9 @@ public class MainFragment extends Fragment {
                         vegetationToSave.setId(selectedVegetation.getId());
                     } else {
                         vegetationToSave.setName(etFarmName.getText().toString());
+                        // NEW: stamp ownership before insert, or VegetationRepo.addVegetation()
+                        // will now reject the call outright (see its null-check).
+                        vegetationToSave.setUserID((long) userId);
                     }
                     vegetationToSave.setDayTempMin(dayTempMin);
                     vegetationToSave.setDayTempMax(dayTempMax);
@@ -968,11 +1028,61 @@ public class MainFragment extends Fragment {
                             }
                         });
                     } else {
+                        // CHANGED: addVegetation() now needs to be followed by
+                        // userVegetationRepo.addUserVegetation() to actually link
+                        // the new row to this user. Previously nothing did this,
+                        // which is why UserVegetation stayed empty no matter how
+                        // many vegetations were "added."
+                        //
+                        // We need the new row's generated id back from Supabase to
+                        // create that link. BaseRepo.executePost() currently discards
+                        // the response body and always calls onSuccess(null), so as
+                        // a stand-in we re-fetch the user's vegetation list right
+                        // after a successful add and link the matching-by-name row.
+                        // (Fragile if two vegetations share a name — revisit once
+                        // BaseRepo is updated to return the created row's real id.)
                         vegetationRepo.addVegetation(vegetationToSave, new VegetationRepo.AddVegetationCallback() {
                             @Override public void onSuccess(Void result) {
-                                Toast.makeText(getContext(), "Vegetation added!", Toast.LENGTH_SHORT).show();
-                                loadFarmData();
-                                dialog.dismiss();
+                                String newName = vegetationToSave.getName();
+                                vegetationRepo.fetchVegetationsForUser(userId,
+                                        new VegetationRepo.FetchVegetationsCallback() {
+                                            @Override public void onSuccess(List<Vegetation> refreshed) {
+                                                allVegetations = refreshed;
+                                                Vegetation newlyAdded = null;
+                                                for (Vegetation v : refreshed) {
+                                                    if (newName.equals(v.getName())) {
+                                                        newlyAdded = v;
+                                                        // keep scanning: if names collide we want the
+                                                        // highest id (most recently created)
+                                                        if (newlyAdded.getId() == null) continue;
+                                                    }
+                                                }
+                                                if (newlyAdded != null && newlyAdded.getId() != null) {
+                                                    userVegetationRepo.addUserVegetation(userId, newlyAdded.getId(),
+                                                            new UserVegetationRepo.AddLinkCallback() {
+                                                                @Override public void onSuccess(Void r) {
+                                                                    Toast.makeText(getContext(), "Vegetation added!", Toast.LENGTH_SHORT).show();
+                                                                    loadFarmData();
+                                                                    dialog.dismiss();
+                                                                }
+                                                                @Override public void onFailure(Exception e) {
+                                                                    Toast.makeText(getContext(),
+                                                                            "Vegetation created, but failed to add it to your list: " + e.getMessage(),
+                                                                            Toast.LENGTH_LONG).show();
+                                                                }
+                                                            });
+                                                } else {
+                                                    Toast.makeText(getContext(),
+                                                            "Vegetation created, but could not link it to your account. Please contact support.",
+                                                            Toast.LENGTH_LONG).show();
+                                                }
+                                            }
+                                            @Override public void onFailure(Exception e) {
+                                                Toast.makeText(getContext(),
+                                                        "Vegetation created, but failed to refresh your list: " + e.getMessage(),
+                                                        Toast.LENGTH_LONG).show();
+                                            }
+                                        });
                             }
                             @Override public void onFailure(Exception e) {
                                 Toast.makeText(getContext(), "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
