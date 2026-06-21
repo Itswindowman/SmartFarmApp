@@ -16,6 +16,7 @@ public class VegetationRepo extends BaseRepo {
     public interface FetchVegetationsCallback extends RepoCallBack<List<Vegetation>> {}
     public interface AddVegetationCallback    extends RepoCallBack<Void> {}
     public interface UpdateVegetationCallback extends RepoCallBack<Void> {}
+    public interface DeleteVegetationCallback extends RepoCallBack<Void> {}
 
     // ═════════════════════════════════════════════════════════════════════════
 
@@ -72,5 +73,17 @@ public class VegetationRepo extends BaseRepo {
         String jsonBody = gson.toJson(vegetation);
         Log.d(TAG, "Updating Vegetation JSON: " + jsonBody);
         executePatch(TAG, url, jsonBody, callback);
+    }
+
+    /**
+     * Deletes a Vegetation row identified by its id.
+     *
+     * Precondition: vegetationId is a valid ID and callback is not null.
+     * Postcondition: Calls callback.onSuccess(null) if delete is successful, or callback.onFailure on error.
+     */
+    public void deleteVegetation(long vegetationId, DeleteVegetationCallback callback) {
+        String url = VEGETATION_URL + "?id=eq." + vegetationId;
+        Log.d(TAG, "Deleting Vegetation ID: " + vegetationId);
+        executeDelete(TAG, url, callback);
     }
 }

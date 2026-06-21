@@ -30,8 +30,9 @@ import okhttp3.ResponseBody;
  *   • executeGet()        – sends a GET and delivers the raw JSON string to a callback
  *   • executePost()       – sends a POST with a JSON body
  *   • executePatch()      – sends a PATCH with a JSON body
+ *   • executeDelete()     – sends a DELETE request
  *
- * All three execute* methods handle:
+ * All execute* methods handle:
  *   - background execution via OkHttp's async enqueue
  *   - posting results back to the main thread via mainHandler
  *   - consistent error reporting through RepoCallBack<String>
@@ -42,8 +43,9 @@ import okhttp3.ResponseBody;
  * GetRequest (executeGet) Retrieves data
  * PostRequest (executePost) Creates data
  * PatchRequest (executePatch) Updates existing data
+ * DeleteRequest (executeDelete) Deletes data
  */
-public class BaseRepo {
+public abstract class BaseRepo {
 
     // ── Supabase config ───────────────────────────────────────────────────────
     protected static final String SUPABASE_URL = "https://lqdbdpnqapcrgwdapbba.supabase.co";
@@ -140,6 +142,21 @@ public class BaseRepo {
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Prefer", "return=minimal")
                 .patch(body)
+                .build();
+    }
+
+    /**
+     * Builds an authenticated DELETE {@link Request}.
+     *
+     * Precondition: url is a valid String.
+     * Postcondition: Returns an authenticated DELETE Request object.
+     */
+    protected Request buildDeleteRequest(String url) {
+        return new Request.Builder()
+                .url(url)
+                .addHeader("apikey", SUPABASE_KEY)
+                .addHeader("Authorization", "Bearer " + SUPABASE_KEY)
+                .delete()
                 .build();
     }
 
@@ -272,6 +289,46 @@ public class BaseRepo {
         });
     }
 
+    /**
+     * Executes a DELETE request asynchronously.
+     * Calls {@code callback.onSuccess(null)} on HTTP 2xx, {@code onFailure} otherwise.
+     *
+     * @param tag      log tag
+     * @param url      target URL (must already include the row filter, e.g. {@code ?id=eq.5})
+     * @param callback result callback
+     *
+     * Precondition: url and callback are not null.
+     * Postcondition: Executes DELETE request asynchronously, delivers success/failure to callback on main thread.
+     */
+    protected void executeDelete(String tag, String url, RepoCallBack<Void> callback) {
+        Request request = buildDeleteRequest(url);
+        Log.d(tag, "DELETE to " + url);
+        httpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Log.e(tag, "DELETE failed: " + e.getMessage());
+                mainHandler.post(() -> callback.onFailure(e));
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
+                try {
+                    if (response.isSuccessful()) {
+                        Log.d(tag, "DELETE success. Code: " + response.code());
+                        mainHandler.post(() -> callback.onSuccess(null));
+                    } else {
+                        String err = readErrorBody(response);
+                        Log.e(tag, "DELETE failed. Code: " + response.code() + ", Error: " + err);
+                        mainHandler.post(() -> callback.onFailure(
+                                new IOException("HTTP " + response.code() + ": " + err)));
+                    }
+                } finally {
+                    response.close();
+                }
+            }
+        });
+    }
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Internal utilities
     // ═════════════════════════════════════════════════════════════════════════
@@ -290,3 +347,4 @@ public class BaseRepo {
         }
     }
 }
+

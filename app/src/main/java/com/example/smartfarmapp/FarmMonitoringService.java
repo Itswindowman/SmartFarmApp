@@ -18,34 +18,7 @@ import androidx.core.app.NotificationCompat;
 
 import java.util.List;
 
-/**
- * ═══════════════════════════════════════════════════════════════════════════
- * FARM MONITORING SERVICE - COMPLETE BEGINNER'S GUIDE (HELP ME)
- * ═══════════════════════════════════════════════════════════════════════════
- *
- * WHAT IS A SERVICE? (By Claude Code)
- * ------------------
- * A Service is a special Android component that runs in the BACKGROUND, even when
- * the user is not looking at your app. Think of it like a worker that keeps doing
- * its job behind the scenes.
- *
- * WHY DO WE NEED THIS SERVICE?
- * -----------------------------
- * 1. AUTO-REFRESH: Automatically fetch new farm data every few minutes (like a timer for the loadFarmData)
- * 2. MONITORING: Check if sensor values are out of range (Vegetation out of range sensors)
- * 3. NOTIFICATIONS: Alert the user when something goes wrong (Alert if something goes wrong)
- * 4. BACKGROUND WORK: Keep working even if the user switches to another app (Background tasks)
- *
- * HOW DOES IT WORK?
- * -----------------
- * 1. The service starts when the user opens MainFragment
- * 2. It uses a Handler to schedule repeating tasks (like an alarm clock)
- * 3. Every X minutes, it fetches new farm data
- * 4. If values are out of range, it sends a notification
- * 5. It broadcasts the new data so the UI can update
- *
- * ═══════════════════════════════════════════════════════════════════════════
- */
+
 public class FarmMonitoringService extends Service {
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -206,7 +206,7 @@ public class MainFragment extends Fragment {
                     result -> handlePickerResult(result, "video/*"));
 
     // ─────────────────────────────────────────────────────────────────────────
-    // BROADCAST RECEIVER  (unchanged from original)
+    // BROADCAST RECEIVER
     // ─────────────────────────────────────────────────────────────────────────
 
     private BroadcastReceiver dataUpdateReceiver = new BroadcastReceiver() {
@@ -654,9 +654,6 @@ public class MainFragment extends Fragment {
         View loadingOverlay = dialogView.findViewById(R.id.loadingOverlay);
         TextView statusText    = dialogView.findViewById(R.id.statusText);
         ImageView      btnClose      = dialogView.findViewById(R.id.btnClose);
-        MaterialButton btnFullscreen = dialogView.findViewById(R.id.btnFullscreen);
-        MaterialButton btnSnapshot   = dialogView.findViewById(R.id.btnSnapshot);
-        MaterialButton btnRecord     = dialogView.findViewById(R.id.btnRecord);
 
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
@@ -674,55 +671,9 @@ public class MainFragment extends Fragment {
             }
         });
         // Replace with your actual camera URL
-        webView.loadUrl("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrOunpvF6cRJnnrnfpFksyRMhWcQyJfivzAQ&s");
+        webView.loadUrl("192.168.3.227");
 
         btnClose.setOnClickListener(v -> dialog.dismiss());
-
-        btnFullscreen.setOnClickListener(v -> {
-            try {
-                ViewGroup.LayoutParams params = webView.getLayoutParams();
-                if (params instanceof ConstraintLayout.LayoutParams) {
-                    ConstraintLayout.LayoutParams cp = (ConstraintLayout.LayoutParams) params;
-                    if (cp.height == ConstraintLayout.LayoutParams.MATCH_PARENT) {
-                        cp.height = 0;
-                        cp.dimensionRatio = "H,4:3";
-                        btnFullscreen.setText("Fullscreen");
-                        Log.d("LiveCamera", "Exited fullscreen mode");
-                    } else {
-                        cp.height = ConstraintLayout.LayoutParams.MATCH_PARENT;
-                        cp.dimensionRatio = null;
-                        btnFullscreen.setText("Exit Fullscreen");
-                        Log.d("LiveCamera", "Entered fullscreen mode");
-                    }
-                    webView.setLayoutParams(cp);
-                } else {
-                    Log.e("LiveCamera", "Parent is not ConstraintLayout! It's: " +
-                            params.getClass().getSimpleName());
-                    Toast.makeText(getContext(), "Fullscreen not supported in this layout",
-                            Toast.LENGTH_SHORT).show();
-                }
-            } catch (Exception e) {
-                Log.e("LiveCamera", "Fullscreen error: " + e.getMessage(), e);
-                Toast.makeText(getContext(), "Error toggling fullscreen", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        btnSnapshot.setOnClickListener(v ->
-                Toast.makeText(getContext(), "Snapshot saved!", Toast.LENGTH_SHORT).show());
-
-        btnRecord.setOnClickListener(v -> {
-            if (btnRecord.getText().toString().equals("REC")) {
-                btnRecord.setText("STOP");
-                btnRecord.setBackgroundTintList(ColorStateList.valueOf(
-                        ContextCompat.getColor(requireContext(), R.color.red)));
-                Toast.makeText(getContext(), "Recording started", Toast.LENGTH_SHORT).show();
-            } else {
-                btnRecord.setText("REC");
-                btnRecord.setBackgroundTintList(ColorStateList.valueOf(
-                        ContextCompat.getColor(requireContext(), R.color.green)));
-                Toast.makeText(getContext(), "Recording saved", Toast.LENGTH_SHORT).show();
-            }
-        });
 
         dialog.show();
 
@@ -1064,7 +1015,7 @@ public class MainFragment extends Fragment {
 
     // Precondition: farm and profile are not null
     // Postcondition: Returns a String detailing which sensor values are out of range based on time of day
-    private String getOutOfRangeDetails(Farm farm, Vegetation profile) {
+    private String getOutOfRangeDetails(Farm farm, Vegetation profile) { // push notifactions
         if (profile == null || farm == null) return "";
         boolean isDay = adapter.isDayTime(farm.getDateTime());
         StringBuilder details = new StringBuilder();

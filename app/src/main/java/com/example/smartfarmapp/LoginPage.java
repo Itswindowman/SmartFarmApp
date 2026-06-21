@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import android.text.TextUtils;
+import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -85,6 +86,26 @@ public class LoginPage extends Fragment { // did the class for the book
         }
     }
 
+    /**
+     * Validates that the email is in a proper format.
+     * Checks for: something before @, @, something after @, ., something after ., and .com
+     *
+     * Precondition: email is a String
+     * Postcondition: Returns true if email matches real-world patterns and user specific requirements
+     */
+    private boolean isValidEmail(String email) {
+        if (TextUtils.isEmpty(email)) return false;
+
+        int atIndex = email.indexOf('@');
+        int dotIndex = email.lastIndexOf('.');
+
+        return atIndex > 0                              // something before @
+                && dotIndex > atIndex + 1               // there is something between @ and .
+                && dotIndex < email.length() - 1        // something after .
+                && email.contains(".com")               // contains .com
+                && Patterns.EMAIL_ADDRESS.matcher(email).matches(); // Real world check
+    }
+
     // Precondition:
 // - etEmail and etPassword are not null and contain text (possibly empty)
 // - sharedPreferences is initialized and valid
@@ -112,7 +133,12 @@ public class LoginPage extends Fragment { // did the class for the book
             return;
         }
 
-        userRepo.getUser(email, password, new UserRepo.GetUserCallback() {
+        if (!isValidEmail(email)) {
+            etEmail.setError("Please enter a valid email address (example@domain.com)");
+            return;
+        }
+
+        userRepo.getUser(email, password, new UserRepo.GetUserCallback() { // check cradinatials in the supabase
             @Override
             public void onSuccess(User user) {
                 // ── BUG FIX: save the real DB id so MainFragment and Gallery can use it ──
@@ -165,6 +191,11 @@ public class LoginPage extends Fragment { // did the class for the book
         if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
             Toast.makeText(getContext(),
                     "Email and Password cannot be empty for Sign Up", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            etEmail.setError("Please enter a valid email address (example@domain.com)");
             return;
         }
 
