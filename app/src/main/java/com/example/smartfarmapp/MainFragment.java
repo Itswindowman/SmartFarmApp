@@ -905,24 +905,56 @@ public class MainFragment extends Fragment {
                 }
 
                 try {
+                    float dayTempMin = Float.parseFloat(etDayTempMin.getText().toString());
+                    float dayTempMax = Float.parseFloat(etDayTempMax.getText().toString());
+                    float nightTempMin = Float.parseFloat(etNightTempMin.getText().toString());
+                    float nightTempMax = Float.parseFloat(etNightTempMax.getText().toString());
+                    float dayGMin = Float.parseFloat(etDayGroundMin.getText().toString());
+                    float dayGMax = Float.parseFloat(etDayGroundMax.getText().toString());
+                    float nightGMin = Float.parseFloat(etNightGroundMin.getText().toString());
+                    float nightGMax = Float.parseFloat(etNightGroundMax.getText().toString());
+                    float dayAMin = Float.parseFloat(etDayAirMin.getText().toString());
+                    float dayAMax = Float.parseFloat(etDayAirMax.getText().toString());
+                    float nightAMin = Float.parseFloat(etNightAirMin.getText().toString());
+                    float nightAMax = Float.parseFloat(etNightAirMax.getText().toString());
+
+                    // Validation: Range check (Min <= Max)
+                    if (dayTempMin > dayTempMax) { etDayTempMin.setError("Min cannot be > Max"); return; }
+                    if (nightTempMin > nightTempMax) { etNightTempMin.setError("Min cannot be > Max"); return; }
+                    if (dayGMin > dayGMax) { etDayGroundMin.setError("Min cannot be > Max"); return; }
+                    if (nightGMin > nightGMax) { etNightGroundMin.setError("Min cannot be > Max"); return; }
+                    if (dayAMin > dayAMax) { etDayAirMin.setError("Min cannot be > Max"); return; }
+                    if (nightAMin > nightAMax) { etNightAirMin.setError("Min cannot be > Max"); return; }
+
+                    // Validation: Humidity bounds (0% - 100%)
+                    EditText[] humidFields = {etDayGroundMin, etDayGroundMax, etNightGroundMin, etNightGroundMax,
+                            etDayAirMin, etDayAirMax, etNightAirMin, etNightAirMax};
+                    for (EditText ef : humidFields) {
+                        float val = Float.parseFloat(ef.getText().toString());
+                        if (val < 0 || val > 100) {
+                            ef.setError("Humidity must be 0-100%");
+                            return;
+                        }
+                    }
+
                     Vegetation vegetationToSave = isEditMode ? selectedVegetation : new Vegetation();
                     if (isEditMode) {
                         vegetationToSave.setId(selectedVegetation.getId());
                     } else {
                         vegetationToSave.setName(etFarmName.getText().toString());
                     }
-                    vegetationToSave.setDayTempMin(Float.parseFloat(etDayTempMin.getText().toString()));
-                    vegetationToSave.setDayTempMax(Float.parseFloat(etDayTempMax.getText().toString()));
-                    vegetationToSave.setNightTempMin(Float.parseFloat(etNightTempMin.getText().toString()));
-                    vegetationToSave.setNightTempMax(Float.parseFloat(etNightTempMax.getText().toString()));
-                    vegetationToSave.setDayGroundHumidMin(Float.parseFloat(etDayGroundMin.getText().toString()));
-                    vegetationToSave.setDayGroundHumidMax(Float.parseFloat(etDayGroundMax.getText().toString()));
-                    vegetationToSave.setNightGroundHumidMin(Float.parseFloat(etNightGroundMin.getText().toString()));
-                    vegetationToSave.setNightGroundHumidMax(Float.parseFloat(etNightGroundMax.getText().toString()));
-                    vegetationToSave.setDayAirHumidMin(Float.parseFloat(etDayAirMin.getText().toString()));
-                    vegetationToSave.setDayAirHumidMax(Float.parseFloat(etDayAirMax.getText().toString()));
-                    vegetationToSave.setNightAirHumidMin(Float.parseFloat(etNightAirMin.getText().toString()));
-                    vegetationToSave.setNightAirHumidMax(Float.parseFloat(etNightAirMax.getText().toString()));
+                    vegetationToSave.setDayTempMin(dayTempMin);
+                    vegetationToSave.setDayTempMax(dayTempMax);
+                    vegetationToSave.setNightTempMin(nightTempMin);
+                    vegetationToSave.setNightTempMax(nightTempMax);
+                    vegetationToSave.setDayGroundHumidMin(dayGMin);
+                    vegetationToSave.setDayGroundHumidMax(dayGMax);
+                    vegetationToSave.setNightGroundHumidMin(nightGMin);
+                    vegetationToSave.setNightGroundHumidMax(nightGMax);
+                    vegetationToSave.setDayAirHumidMin(dayAMin);
+                    vegetationToSave.setDayAirHumidMax(dayAMax);
+                    vegetationToSave.setNightAirHumidMin(nightAMin);
+                    vegetationToSave.setNightAirHumidMax(nightAMax);
 
                     if (isEditMode) {
                         vegetationRepo.updateVegetation(vegetationToSave, new VegetationRepo.UpdateVegetationCallback() {

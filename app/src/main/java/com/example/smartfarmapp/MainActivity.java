@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String PREFS_NAME = "SmartFarmPrefs";
     private static final String KEY_REMEMBER_ME = "remember_me";
+    private static final String KEY_USER_ID = "user_id";
 
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
@@ -57,8 +58,10 @@ public class MainActivity extends AppCompatActivity {
             NavController navController = navHostFragment.getNavController();
             SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
             boolean shouldRemember = sharedPreferences.getBoolean(KEY_REMEMBER_ME, false);
+            int userId = sharedPreferences.getInt(KEY_USER_ID, -1);
 
-            if (shouldRemember) {
+            // Edge Case: Check both remember_me AND a valid user_id existence
+            if (shouldRemember && userId != -1) {
                 // If "Remember Me" is true, navigate to the main fragment.
                 navController.navigate(R.id.action_loginPage_to_mainFragment);
             }
@@ -75,24 +78,26 @@ public class MainActivity extends AppCompatActivity {
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
-                // רץ כשהאינטרנט חוזר
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, "החיבור חזר!", Toast.LENGTH_SHORT).show());
+                // Connection restored
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Connection restored", Toast.LENGTH_SHORT).show());
             }
 
             @Override
             public void onLost(Network network) {
-                // רץ כשהאינטרנט אובד
+                // Connection lost
                 runOnUiThread(() -> {
-                    new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("שים לב")
-                            .setMessage("החיבור לאינטרנט אבד.")
-                            .setPositiveButton("סגור", null)
-                            .show();
+                    if (!isFinishing()) {
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("No Internet")
+                                .setMessage("Internet connection lost. Some features may not work.")
+                                .setPositiveButton("Dismiss", null)
+                                .show();
+                    }
                 });
             }
         };
 
-        // רישום המאזין
+        // Register the listener
         connectivityManager.registerDefaultNetworkCallback(networkCallback);
     }
 

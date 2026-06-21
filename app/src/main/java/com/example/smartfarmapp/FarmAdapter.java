@@ -221,7 +221,7 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * Postcondition: Returns true if the hour in isoDate is between 6 and 17 inclusive, false otherwise. Defaults to true.
      */
     public boolean isDayTime(String isoDate) {
-        if (isoDate == null) return true; // Default to daytime if the date is missing.
+        if (isoDate == null || isoDate.length() < 19) return true; // Default to daytime if the date is missing or malformed.
         try {
             // The parser needs to match the format of the date string from the database.
             SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
@@ -249,6 +249,7 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      */
     private String formatDate(String isoDate) {
         if (isoDate == null) return "N/A"; // Handle missing date gracefully.
+        if (isoDate.length() < 19) return isoDate; // Safeguard against short strings
         try {
             // Same parsing logic as isDayTime.
             SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
