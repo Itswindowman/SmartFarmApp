@@ -672,7 +672,7 @@ public class MainFragment extends Fragment {
             }
         });
         // Replace with your actual camera URL
-        webView.loadUrl("192.168.3.227");
+        webView.loadUrl("https://m.media-amazon.com/images/I/6123J3f3W7L._AC_UF1000,1000_QL80_.jpg`");
 
         btnClose.setOnClickListener(v -> dialog.dismiss());
 

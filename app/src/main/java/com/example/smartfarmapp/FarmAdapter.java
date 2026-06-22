@@ -24,17 +24,29 @@ import java.util.Locale;
  *  2. Take data for a specific position and "bind" it to a row layout.
  *  3. Tell the RecyclerView how many total items are in the list.
  *  4. Recycle row views as the user scrolls to save memory and be highly efficient.
+ *
+ * Think of it as a bridge: on one side you have a List of data, and on the other side you have
+ * the Screen. The Adapter crosses the bridge to pick up a data item and put it into a visual "box"
+ * (the ViewHolder) so it can be shown to the user.
  */
 public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder> {
 
     // --- MEMBER VARIABLES ---
-    private List<Farm> farmList; // This holds the list of data the adapter will display.
-    private Vegetation activeVegetation; // The currently active vegetation profile to check sensor values against.
-    private int defaultTextColor; // Stores the default text color to reset views when they are back in range.
+    // This holds the actual data we want to show. It's a list of 'Farm' objects.
+    private List<Farm> farmList; 
+    
+    // This profile contains the "ideal" temperature and humidity ranges. 
+    // We use it to color the text red if a value is too high or too low.
+    private Vegetation activeVegetation; 
+    
+    // We store the default text color (usually black or white depending on the theme)
+    // so we can change the text back to normal if a sensor value returns to a safe range.
+    private int defaultTextColor; 
 
     /**
      * --- CONSTRUCTOR ---
-     * The constructor receives the initial list of farm data.
+     * This is the "Setup" method. When we create this adapter in our Activity or Fragment,
+     * we give it the list of farm data we want it to manage.
      * @param farmList The list of Farm objects to be displayed.
      *
      * Precondition: farmList is a valid List of Farm objects (can be empty).
@@ -55,7 +67,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      */
     public void setActiveVegetation(Vegetation vegetation) {
         this.activeVegetation = vegetation;
-        notifyDataSetChanged(); // This is crucial to trigger a UI update.
+        // notifyDataSetChanged is like hitting the "Refresh" button. It tells the list
+        // that the data or the rules (like ranges) have changed, so it should update the screen.
+        notifyDataSetChanged(); 
     }
 
     /**
@@ -70,6 +84,9 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
     }
 
     /**
+     * Clears all data from the list and removes the active vegetation profile.
+     * Useful when logging out or refreshing the whole app state.
+     * 
      * Precondition: None
      * Postcondition: farmList is cleared, activeVegetation is set to null, and the UI is notified to refresh.
      */
@@ -78,16 +95,19 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
             farmList.clear();
         }
         activeVegetation = null;
-        notifyDataSetChanged();
+        notifyDataSetChanged(); // Refresh the UI to show an empty list.
     }
 
     /**
      * --- 1. ON-CREATE-VIEW-HOLDER ---
      * This method is called by the RecyclerView only when it needs a brand new row layout to display.
      * It runs a few times at the beginning to create just enough views to fill the screen plus a few extra for recycling.
-     * @param parent The ViewGroup into which the new View will be added after it is bound to an adapter position.
-     * @param viewType The view type of the new View.
-     * @return A new FarmViewHolder that holds a View of the given view type.
+     * 
+     * Imagine this as building the "Physical Box" that will hold our data.
+     * 
+     * @param parent The ViewGroup into which the new View will be added.
+     * @param viewType The view type (used if you have different types of rows).
+     * @return A new FarmViewHolder that holds our inflated layout.
      *
      * Precondition: parent is not null and provides context.
      * Postcondition: A new FarmViewHolder is created with the inflated item_farm layout and defaultTextColor is initialized.
@@ -95,15 +115,16 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
     @NonNull
     @Override
     public FarmViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // A LayoutInflater is a standard Android tool that turns an XML layout file into an actual View object in code.
+        // 'LayoutInflater' is like a 3D printer for XML files. 
+        // It takes the XML layout 'item_farm' and creates a real View object from it.
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_farm, parent, false);
 
-        // We get the default text color from a newly created TextView. This is a reliable way
-        // to get the correct color that matches the current theme (light or dark mode).
+        // We capture the default text color here once so we don't have to guess it later.
+        // We create a temporary TextView just to read what color it normally uses.
         defaultTextColor = new TextView(parent.getContext()).getTextColors().getDefaultColor();
 
-        // Return a new ViewHolder instance containing the inflated view.
+        // We put the new View inside a "ViewHolder" and return it.
         return new FarmViewHolder(view);
     }
 
@@ -111,45 +132,52 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
      * --- 2. ON-BIND-VIEW-HOLDER ---
      * This is the core method of the adapter. It's called every time a row needs to display data.
      * This happens when the list first loads and every time you scroll to a new item.
-     * It takes a recycled ViewHolder and fills it with the correct data for the given `position`.
-     * @param holder The ViewHolder which should be updated to represent the contents of the item at the given position in the data set.
-     * @param position The position of the item within the adapter's data set.
+     * 
+     * Imagine this as "Filling the Box" with actual information.
+     * 
+     * @param holder The ViewHolder (the box) we are filling.
+     * @param position The index of the item in our list (0, 1, 2...).
      *
      * Precondition: holder is not null and position is within the bounds of farmList.
      * Postcondition: The UI elements in the holder are updated with data from the Farm object at the given position, and colors are applied based on activeVegetation.
      */
     @Override
     public void onBindViewHolder(@NonNull FarmViewHolder holder, int position) {
-        // Get the specific Farm object for this row from our data list.
+        // Step 1: Get the data object for the current position.
         Farm farm = farmList.get(position);
 
-        // Set the text for each TextView in the row using the data from the Farm object.
+        // Step 2: Set the text for each TextView using the data from the Farm object.
         holder.tvTemp.setText("Temp: " + farm.getTemp() + "°C");
         holder.tvGroundHumid.setText("Ground Humidity: " + farm.getGroundHumid() + "%");
         holder.tvAirHumid.setText("Air Humidity: " + farm.getAirHumid() + "%");
+        // We use a helper method 'formatDate' to make the computer-style date look pretty for humans.
         holder.tvDateTime.setText("Updated: " + formatDate(farm.getDateTime()));
 
         // --- DYNAMIC COLORING (RANGE CHECKING) LOGIC ---
-        // If no vegetation profile is active, we can't check ranges. Reset all text to the default color and stop.
+        // If the user hasn't selected a crop (Vegetation profile), we just use default colors.
         if (activeVegetation == null) {
             holder.tvTemp.setTextColor(defaultTextColor);
             holder.tvGroundHumid.setTextColor(defaultTextColor);
             holder.tvAirHumid.setTextColor(defaultTextColor);
-            return; // Exit the method early.
+            return; // Stop here and don't do any range checking.
         }
 
-        // Determine if the farm's timestamp corresponds to daytime or nighttime.
+        // Determine if the reading was taken during Day or Night. 
+        // Plants often have different temperature needs at night!
         boolean isDay = isDayTime(farm.getDateTime());
 
         // --- Check Temperature Range ---
         float tempMin, tempMax;
         if (isDay) {
+            // Get daytime safety ranges
             tempMin = activeVegetation.getDayTempMin();
             tempMax = activeVegetation.getDayTempMax();
         } else {
+            // Get nighttime safety ranges
             tempMin = activeVegetation.getNightTempMin();
             tempMax = activeVegetation.getNightTempMax();
         }
+        // Use our helper to compare the actual value vs the min/max and set the color.
         checkValue(holder.tvTemp, (double) farm.getTemp(), (double) tempMin, (double) tempMax);
 
         // --- Check Ground Humidity Range ---
@@ -177,8 +205,8 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
 
     /**
      * --- 3. GET-ITEM-COUNT ---
-     * A very simple but essential method that just tells the RecyclerView the total number of items in the data list.
-     * @return The total number of items in this adapter.
+     * This tells the RecyclerView how many total rows it needs to prepare for.
+     * @return The size of our data list.
      *
      * Precondition: farmList is not null.
      * Postcondition: Returns the size of farmList.
@@ -189,97 +217,105 @@ public class FarmAdapter extends RecyclerView.Adapter<FarmAdapter.FarmViewHolder
     }
 
     /**
-     * A helper method to check if a sensor value is outside the allowed min/max range.
-     * It sets the text color to RED for out-of-range values and resets it to the default color for in-range values.
-     * @param textView The TextView to color.
-     * @param value The current sensor value.
-     * @param min The minimum allowed value.
-     * @param max The maximum allowed value.
+     * A helper method to check if a sensor value is "Safe" or "Dangerous".
+     * - RED: The value is outside the allowed range (too hot, too dry, etc.).
+     * - GRAY: Data is missing.
+     * - DEFAULT: Everything is fine.
+     * 
+     * @param textView The TextView we want to change the color of.
+     * @param value The actual sensor reading.
+     * @param min The lowest safe value.
+     * @param max The highest safe value.
      *
      * Precondition: textView is not null.
      * Postcondition: Sets textView color to Color.GRAY if any numeric parameter is null, Color.RED if value is out of [min, max], or defaultTextColor if in range.
      */
     private void checkValue(TextView textView, Double value, Double min, Double max) {
-        // If any of the values are null (missing data), color the text gray to indicate uncertainty.
         if (value == null || min == null || max == null) {
+            // Missing data? Color it gray so the user knows it's uncertain.
             textView.setTextColor(Color.GRAY);
         } else if (value < min || value > max) {
-            // If the value is outside the range, color it red to alert the user.
+            // Out of range? Color it RED to alert the farmer.
             textView.setTextColor(Color.RED);
         } else {
-            // If the value is within the range, reset the color to the theme's default.
+            // Safe? Use the normal text color.
             textView.setTextColor(defaultTextColor);
         }
     }
 
     /**
-     * A helper method to determine if a given timestamp is during the day (defined as 6:00 AM to 5:59 PM).
-     * @param isoDate The date string from the database (in ISO 8601 format).
+     * A helper method to determine if a given timestamp is during the day (6:00 AM to 5:59 PM).
+     * We need this because many crops have different requirements for Day vs Night.
+     * 
+     * @param isoDate The date string (e.g., "2024-07-15T14:30:00").
      * @return `true` if it's daytime, `false` otherwise.
      *
      * Precondition: isoDate is a String in ISO 8601 format or null.
      * Postcondition: Returns true if the hour in isoDate is between 6 and 17 inclusive, false otherwise. Defaults to true.
      */
     public boolean isDayTime(String isoDate) {
-        if (isoDate == null || isoDate.length() < 19) return true; // Default to daytime if the date is missing or malformed.
+        if (isoDate == null || isoDate.length() < 19) return true; // Safety check for bad data.
         try {
-            // The parser needs to match the format of the date string from the database.
+            // Create a parser that understands the "Year-Month-Day T Hour:Minute:Second" format.
             SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
-            // We parse only the main part of the date string, ignoring fractional seconds or timezone info.
             Date date = parser.parse(isoDate.substring(0, 19));
-            // Use a Calendar object to easily extract the hour of the day.
+            
+            // Use a Calendar to look at the specific 'Hour' of that date.
             Calendar cal = Calendar.getInstance();
             cal.setTime(date);
-            int hour = cal.get(Calendar.HOUR_OF_DAY); // Gets the hour in 24-hour format (0-23).
-            // Returns true if the hour is between 6 and 17 (i.e., 6:00 AM to 5:59 PM).
+            int hour = cal.get(Calendar.HOUR_OF_DAY); // Returns 0-23
+            
+            // We define Day as 6 AM to 6 PM (hour 6 to 17).
             return hour >= 6 && hour < 18;
         } catch (ParseException e) {
-            e.printStackTrace(); // Log the error if parsing fails.
-            return true; // Default to daytime on a parsing error to be safe.
+            e.printStackTrace(); 
+            return true; // Default to daytime if we can't figure it out.
         }
     }
 
     /**
-     * A helper method to format the technical date string from Supabase into a more human-readable format.
-     * @param isoDate The date string from the database.
-     * @return A formatted date string (e.g., "15 Jul 2024, 14:30").
+     * Formats the computer-friendly date from the database into something pretty for the user.
+     * Converts "2024-07-15T14:30:00" -> "15 Jul 2024, 14:30"
+     * 
+     * @param isoDate The raw date string.
+     * @return A readable date string.
      *
      * Precondition: isoDate is a String in ISO 8601 format or null.
      * Postcondition: Returns a formatted date string or the original isoDate if parsing fails.
      */
     private String formatDate(String isoDate) {
-        if (isoDate == null) return "N/A"; // Handle missing date gracefully.
-        if (isoDate.length() < 19) return isoDate; // Safeguard against short strings
+        if (isoDate == null) return "N/A";
+        if (isoDate.length() < 19) return isoDate; 
         try {
-            // Same parsing logic as isDayTime.
+            // 1. Parse the raw string into a Date object.
             SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
             Date date = parser.parse(isoDate.substring(0, 19));
-            // Define the desired output format.
+            
+            // 2. Format that Date object into our desired style.
             SimpleDateFormat formatter = new SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.US);
-            // Return the newly formatted string.
             return formatter.format(date);
         } catch (Exception e) {
-            return isoDate; // If formatting fails for any reason, just return the original string.
+            return isoDate; // Return raw data if formatting fails.
         }
     }
 
     /**
      * --- THE VIEW HOLDER ---
-     * A ViewHolder's job is to hold onto the references to the Views that make up a single row (e.g., the TextViews).
-     * The RecyclerView creates a few of these and then, and then recycles them, passing them to onBindViewHolder.
-     * This is highly efficient because it completely avoids calling `findViewById()` repeatedly while scrolling, which is slow.
+     * A ViewHolder is like a "Container" for the views in a single row.
+     * Instead of looking up 'tvTemp' every time we scroll (which is slow), 
+     * we look it up once, save it here, and reuse it. This is why RecyclerView is so smooth!
      */
     static class FarmViewHolder extends RecyclerView.ViewHolder {
-        // Declare the views for a single row.
+        // These variables hold the actual UI components for one row.
         TextView tvTemp, tvGroundHumid, tvAirHumid, tvDateTime;
 
         /**
-         * Precondition: itemView is not null and contains the expected view IDs.
-         * Postcondition: ViewHolder is initialized with references to the TextViews in itemView.
+         * The constructor for the ViewHolder.
+         * @param itemView The entire row View (item_farm.xml).
          */
         public FarmViewHolder(@NonNull View itemView) {
             super(itemView);
-            // We find the views by their ID here, just once when the ViewHolder is created.
+            // We find the views by their ID here, JUST ONCE.
             tvTemp = itemView.findViewById(R.id.tvTemp);
             tvGroundHumid = itemView.findViewById(R.id.tvGroundHumid);
             tvAirHumid = itemView.findViewById(R.id.tvAirHumid);
